@@ -1,0 +1,125 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User metadata is stored in Supabase Auth (auth.users table)
+// This table stores additional app-specific user data
+// The id maps to auth.users.id via Supabase Auth
+model User {
+  id              String   @id // Matches Supabase Auth user ID
+  email           String   @unique
+  name            String?
+  businessName    String?
+  stripeAccountId String?  @unique
+  stripeConnected Boolean  @default(false)
+  commissionRate  Float    @default(0.03) // 3% default
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  products Product[]
+  orders   Order[]
+  plans    Plan[]
+  coupons  Coupon[]
+}
+
+model Product {
+  id                   String   @id @default(cuid())
+  name                 String
+  description          String?
+  price                Float // in cents
+  currency             String   @default("usd")
+  imageUrl             String?
+  type                 String   @default("one_time") // one_time, subscription
+  interval             String? // month, year (for subscriptions)
+  deliveryType         String   @default("none") // none, redirect, download, email
+  deliveryUrl          String? // URL to redirect after purchase or download link
+  deliveryInstructions String? // text shown on success page
+  active               Boolean  @default(true)
+  bumpEnabled          Boolean  @default(false)
+  bumpProduct          String? // ID of bump product
+  bumpPrice            Float?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  userId String
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders Order[]
+}
+
+model Order {
+  id                    String  @id @default(cuid())
+  amount                Float // total amount in cents
+  currency              String  @default("usd")
+  status                String  @default("pending") // pending, completed, failed, refunded
+  customerEmail         String
+  customerName          String?
+  stripePaymentId       String? @unique
+  stripePaymentIntentId String? @unique
+  stripeSessionId       String? @unique
+  includedBump          Boolean @default(false)
+  platformFee           Float   @default(0) // our commission
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Coupon {
+  id        String    @id @default(cuid())
+  code      String    @unique
+  discount  Float // percentage (0.1 = 10%)
+  maxUses   Int       @default(0) // 0 = unlimited
+  usedCount Int       @default(0)
+  active    Boolean   @default(true)
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Plan {
+  id            String         @id @default(cuid())
+  name          String
+  stripePriceId String?
+  price         Float
+  interval      String         @default("month") // month, year
+  features      String?        // JSON array of features
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  userId       String
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id                   String    @id @default(cuid())
+  customerEmail        String
+  stripeSubscriptionId String?
+  status               String    @default("active") // active, canceled, past_due
+  currentPeriodEnd     DateTime?
+  createdAt            DateTime  @default(now())
+
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+}
+
+model WebhookLog {
+  id        String   @id @default(cuid())
+  eventId   String   @unique
+  eventType String
+  payload   String   // JSON string
+  processed Boolean  @default(false)
+  error     String?
+  createdAt DateTime @default(now())
+}
