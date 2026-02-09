@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Save,
   CreditCard,
@@ -11,6 +11,7 @@ import {
   ExternalLink,
   Shield,
   AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,24 +30,48 @@ interface Settings {
   accentColor: string;
 }
 
-const initialSettings: Settings = {
-  name: "John Doe",
-  email: "john@example.com",
-  businessName: "Digital Products Co.",
-  stripeConnected: false,
-  stripeAccountId: "",
-  logoUrl: "",
-  accentColor: "#6366f1",
-};
-
 const COMMISSION_RATE = 0; // 0% EmbPay fee - merchant keeps 100%
 
 // ── Component ────────────────────────────────────────────
 export default function SettingsPage() {
-  const [settings, setSettings] = useState<Settings>(initialSettings);
+  const [settings, setSettings] = useState<Settings>({
+    name: "",
+    email: "",
+    businessName: "",
+    stripeConnected: false,
+    stripeAccountId: "",
+    logoUrl: "",
+    accentColor: "#6366f1",
+  });
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [error, setError] = useState("");
+
+  // Fetch user settings on mount
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.data) {
+          setSettings({
+            name: data.data.name || "",
+            email: data.data.email || "",
+            businessName: data.data.businessName || "",
+            stripeConnected: data.data.stripeConnected || false,
+            stripeAccountId: data.data.stripeAccountId || "",
+            logoUrl: data.data.logoUrl || "",
+            accentColor: data.data.accentColor || "#6366f1",
+          });
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load settings:", err);
+        setError("Failed to load settings");
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   const updateField = <K extends keyof Settings>(
     key: K,
@@ -57,18 +82,25 @@ export default function SettingsPage() {
 
   const handleSave = async () => {
     setSaving(true);
+    setError("");
     try {
-      await fetch("/api/settings", {
+      const res = await fetch("/api/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(settings),
       });
+      const data = await res.json();
+      if (data.success) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      } else {
+        setError(data.error || "Failed to save settings");
+      }
     } catch {
-      // Fallback for demo
+      setError("Failed to save settings");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
   };
 
   const handleConnectStripe = async () => {
@@ -106,6 +138,17 @@ export default function SettingsPage() {
     "#3b82f6",
   ];
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 text-indigo-400 animate-spin" />
+          <p className="text-slate-400">Loading settings...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       {/* Header */}
@@ -117,6 +160,14 @@ export default function SettingsPage() {
           Manage your account, payments, and branding
         </p>
       </div>
+
+      {/* Error Banner */}
+      {error && (
+        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
+          <p className="text-red-400 text-sm">{error}</p>
+        </div>
+      )}
 
       {/* Stripe Connection */}
       <Card>

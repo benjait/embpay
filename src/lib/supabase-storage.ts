@@ -11,12 +11,9 @@ export const supabaseStorage = createClient(supabaseUrl, supabaseKey, {
   },
   global: {
     // Use custom fetch with proxy if needed
-    fetch: (url: string, options: any) => {
+    fetch: (input: RequestInfo | URL, init?: RequestInit) => {
       // Add proxy support here if needed
-      return fetch(url, {
-        ...options,
-        // Proxy configuration can be added here
-      })
+      return fetch(input, init)
     }
   }
 })

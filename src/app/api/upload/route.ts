@@ -44,10 +44,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Max file size 10MB
-export const config = {
-  api: {
-    bodyParser: false,
-    sizeLimit: '10mb'
-  }
-}
+// Max file size 10MB - Using Route Segment Config
+export const dynamic = 'force-dynamic'
+export const maxDuration = 30
