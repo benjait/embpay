@@ -36,8 +36,8 @@ export default function LoginPage() {
 
       const data = await res.json();
       if (data.success) {
-        // Store JWT in cookie
-        const token = data.token || data.data?.token;
+        // Store JWT in cookie - token is in data.data.session.access_token
+        const token = data.data?.session?.access_token;
         if (token) {
           document.cookie = `token=${token}; path=/; max-age=${rememberMe ? 2592000 : 86400}; SameSite=Lax`;
         }
