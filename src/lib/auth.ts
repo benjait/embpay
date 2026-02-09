@@ -46,13 +46,13 @@ export async function getAuthUser(request: NextRequest) {
     // Create the user record
     return await prisma.user.create({
       data: {
-        id: user.id,
+        id: user.id as string,
         email: user.email!,
-        name: user.user_metadata?.name || null,
-        businessName: user.user_metadata?.businessName || null,
-        stripeConnected: user.user_metadata?.stripeConnected || false,
-        stripeAccountId: user.user_metadata?.stripeAccountId || null,
-        commissionRate: user.user_metadata?.commissionRate || 0.03,
+        name: (user.user_metadata?.name as string | null) || null,
+        businessName: (user.user_metadata?.businessName as string | null) || null,
+        stripeConnected: (user.user_metadata?.stripeConnected as boolean | null) || false,
+        stripeAccountId: (user.user_metadata?.stripeAccountId as string | null) || null,
+        commissionRate: (user.user_metadata?.commissionRate as number | null) || 0.03,
       },
       select: {
         id: true,
