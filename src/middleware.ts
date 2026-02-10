@@ -63,7 +63,9 @@ export async function middleware(request: NextRequest) {
   }
 
   // Redirect logged-in users from auth pages
-  if ((request.nextUrl.pathname.startsWith('/auth/login') || request.nextUrl.pathname.startsWith('/auth/register')) && user) {
+  if ((request.nextUrl.pathname.startsWith('/auth/login') || 
+       request.nextUrl.pathname.startsWith('/auth/register') ||
+       request.nextUrl.pathname.startsWith('/auth/forgot-password')) && user) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
