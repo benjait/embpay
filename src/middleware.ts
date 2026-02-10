@@ -59,11 +59,11 @@ export async function middleware(request: NextRequest) {
 
   // Protect dashboard routes
   if (request.nextUrl.pathname.startsWith('/dashboard') && !user) {
-    return NextResponse.redirect(new URL('/login', request.url))
+    return NextResponse.redirect(new URL('/auth/login', request.url))
   }
 
   // Redirect logged-in users from auth pages
-  if ((request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/register') && user) {
+  if ((request.nextUrl.pathname.startsWith('/auth/login') || request.nextUrl.pathname.startsWith('/auth/register')) && user) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
