@@ -60,7 +60,7 @@ export default function RegisterPage() {
         // Store JWT in cookie - token is in data.data.session.access_token
         const token = data.data?.session?.access_token;
         if (token) {
-          document.cookie = `token=${token}; path=/; max-age=86400; SameSite=Lax`;
+          document.cookie = `token=${token}; path=/; max-age=86400; SameSite=Lax; Secure`;
         }
         window.location.href = "/dashboard";
       } else {
