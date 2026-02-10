@@ -17,8 +17,19 @@ export function verifyToken(token: string): { userId: string } | null {
   return null;
 }
 
-// Main auth function - now uses Supabase Auth
+// Main auth function - reads token from cookie
 export async function getAuthUser(request: NextRequest) {
+  // First try to get token from our custom cookie
+  const token = request.cookies.get('token')?.value;
+  
+  if (token) {
+    // Verify token with Supabase
+    const supabase = await createClient();
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (!error && user) return user;
+  }
+  
+  // Fallback to Supabase default
   const supabase = await createClient();
   const { data: { user }, error } = await supabase.auth.getUser();
   
