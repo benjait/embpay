@@ -47,7 +47,7 @@ export default function EmbedPage() {
 
   const fetchProducts = useCallback(async () => {
     try {
-      const res = await fetch("/api/products");
+      const res = await fetch("/api/products", { credentials: "include" });
       const data = await res.json();
       if (data.success && data.data.length > 0) {
         setProducts(data.data);

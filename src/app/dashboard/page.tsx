@@ -57,7 +57,9 @@ export default function DashboardPage() {
 
   const fetchStats = useCallback(async () => {
     try {
-      const res = await fetch("/api/dashboard/stats");
+      const res = await fetch("/api/dashboard/stats", {
+        credentials: 'include'
+      });
       const data = await res.json();
       if (data.success) {
         setStats(data.data);

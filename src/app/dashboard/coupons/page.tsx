@@ -49,7 +49,7 @@ export default function CouponsPage() {
 
   const fetchCoupons = useCallback(async () => {
     try {
-      const res = await fetch("/api/coupons");
+      const res = await fetch("/api/coupons", { credentials: "include" });
       const data = await res.json();
       if (data.success) {
         setCoupons(data.data);

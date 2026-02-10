@@ -63,7 +63,7 @@ export default function PlansPage() {
 
   const fetchPlans = async () => {
     try {
-      const res = await fetch("/api/plans");
+      const res = await fetch("/api/plans", { credentials: "include" });
       const data = await res.json();
       if (data.success) {
         setPlans(data.data);

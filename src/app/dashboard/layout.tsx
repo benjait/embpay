@@ -63,7 +63,7 @@ export default function DashboardLayout({
     setAuthChecked(true);
 
     // Fetch actual user data from the /api/auth/me endpoint
-    fetch("/api/auth/me")
+    fetch("/api/auth/me", { credentials: "include" })
       .then((res) => {
         if (res.status === 401) {
           // Token is invalid/expired — redirect to login

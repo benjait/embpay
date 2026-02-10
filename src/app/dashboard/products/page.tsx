@@ -49,7 +49,7 @@ export default function ProductsPage() {
 
   const fetchProducts = useCallback(async () => {
     try {
-      const res = await fetch("/api/products");
+      const res = await fetch("/api/products", { credentials: "include" });
       const data = await res.json();
       if (data.success) {
         setProducts(data.data);
