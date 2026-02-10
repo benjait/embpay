@@ -1,5 +1,7 @@
 "use client";
 
+// Forgot password page - allows users to request a password reset
+
 import { useState } from "react";
 import Link from "next/link";
 import { Mail, ArrowLeft, Zap, CheckCircle } from "lucide-react";
