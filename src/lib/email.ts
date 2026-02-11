@@ -1,6 +1,8 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = process.env.RESEND_API_KEY
+  ? new Resend(process.env.RESEND_API_KEY)
+  : null;
 
 export interface OrderEmailData {
   orderId: string;
@@ -13,7 +15,7 @@ export interface OrderEmailData {
 }
 
 export async function sendOrderConfirmation(data: OrderEmailData) {
-  if (!process.env.RESEND_API_KEY) {
+  if (!resend) {
     console.warn('[Email] RESEND_API_KEY not configured, skipping email');
     return { success: false, error: 'Email not configured' };
   }
@@ -35,7 +37,7 @@ export async function sendOrderConfirmation(data: OrderEmailData) {
 }
 
 export async function sendRefundNotification(data: OrderEmailData) {
-  if (!process.env.RESEND_API_KEY) {
+  if (!resend) {
     console.warn('[Email] RESEND_API_KEY not configured, skipping email');
     return { success: false, error: 'Email not configured' };
   }
