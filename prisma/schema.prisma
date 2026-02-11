@@ -7,133 +7,116 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User metadata is stored in Supabase Auth (auth.users table)
-// This table stores additional app-specific user data
-// The id maps to auth.users.id via Supabase Auth
 model User {
-  id              String   @id @map("id")
-  email           String   @unique @map("email")
-  name            String?  @map("name")
-  businessName    String?  @map("business_name")
-  stripeAccountId String?  @unique @map("stripe_account_id")
-  stripeConnected Boolean  @default(false) @map("stripe_connected")
-  commissionRate  Float    @default(0.03) @map("commission_rate")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id              String   @id
+  email           String   @unique
+  name            String?
+  businessName    String?
+  stripeAccountId String?  @unique
+  stripeConnected Boolean  @default(false)
+  commissionRate  Float    @default(0.03)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   products Product[]
   orders   Order[]
   plans    Plan[]
   coupons  Coupon[]
-
-  @@map("User")
 }
 
 model Product {
-  id                   String   @id @default(cuid()) @map("id")
-  name                 String   @map("name")
-  description          String?  @map("description")
-  price                Float    @map("price")
-  currency             String   @default("usd") @map("currency")
-  imageUrl             String?  @map("image_url")
-  type                 String   @default("one_time") @map("type")
-  interval             String?  @map("interval")
-  deliveryType         String   @default("none") @map("delivery_type")
-  deliveryUrl          String?  @map("delivery_url")
-  deliveryInstructions String?  @map("delivery_instructions")
-  active               Boolean  @default(true) @map("active")
-  bumpEnabled          Boolean  @default(false) @map("bump_enabled")
-  bumpProduct          String?  @map("bump_product")
-  bumpPrice            Float?   @map("bump_price")
-  createdAt            DateTime @default(now()) @map("created_at")
-  updatedAt            DateTime @updatedAt @map("updated_at")
+  id                   String   @id @default(cuid())
+  name                 String
+  description          String?
+  price                Float
+  currency             String   @default("usd")
+  imageUrl             String?
+  type                 String   @default("one_time")
+  interval             String?
+  deliveryType         String   @default("none")
+  deliveryUrl          String?
+  deliveryInstructions String?
+  active               Boolean  @default(true)
+  bumpEnabled          Boolean  @default(false)
+  bumpProduct          String?
+  bumpPrice            Float?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
-  userId String @map("user_id")
+  userId String
   user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   orders Order[]
-
-  @@map("Product")
 }
 
 model Order {
-  id                    String   @id @default(cuid()) @map("id")
-  amount                Float    @map("amount")
-  currency              String   @default("usd") @map("currency")
-  status                String   @default("pending") @map("status")
-  customerEmail         String   @map("customer_email")
-  customerName          String?  @map("customer_name")
-  stripePaymentId       String?  @unique @map("stripe_payment_id")
-  stripePaymentIntentId String?  @unique @map("stripe_payment_intent_id")
-  stripeSessionId       String?  @unique @map("stripe_session_id")
-  includedBump          Boolean  @default(false) @map("included_bump")
-  platformFee           Float    @default(0) @map("platform_fee")
-  createdAt             DateTime @default(now()) @map("created_at")
-  updatedAt             DateTime @updatedAt @map("updated_at")
+  id                    String   @id @default(cuid())
+  amount                Float
+  currency              String   @default("usd")
+  status                String   @default("pending")
+  customerEmail         String
+  customerName          String?
+  stripePaymentId       String?  @unique
+  stripePaymentIntentId String?  @unique
+  stripeSessionId       String?  @unique
+  includedBump          Boolean  @default(false)
+  platformFee           Float    @default(0)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
-  productId String  @map("product_id")
+  productId String
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  userId    String  @map("user_id")
+  userId    String
   user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("Order")
 }
 
 model Coupon {
-  id        String    @id @default(cuid()) @map("id")
-  code      String    @unique @map("code")
-  discount  Float     @map("discount")
-  maxUses   Int       @default(0) @map("max_uses")
-  usedCount Int       @default(0) @map("used_count")
-  active    Boolean   @default(true) @map("active")
-  expiresAt DateTime? @map("expires_at")
-  createdAt DateTime  @default(now()) @map("created_at")
+  id        String    @id @default(cuid())
+  code      String    @unique
+  discount  Float
+  maxUses   Int       @default(0)
+  usedCount Int       @default(0)
+  active    Boolean   @default(true)
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
 
-  userId String @map("user_id")
+  userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("Coupon")
 }
 
 model Plan {
-  id            String         @id @default(cuid()) @map("id")
-  name          String         @map("name")
-  stripePriceId String?        @map("stripe_price_id")
-  price         Float          @map("price")
-  interval      String         @default("month") @map("interval")
-  features      String?        @map("features")
-  isActive      Boolean        @default(true) @map("is_active")
-  createdAt     DateTime       @default(now()) @map("created_at")
-  updatedAt     DateTime       @updatedAt @map("updated_at")
+  id            String         @id @default(cuid())
+  name          String
+  stripePriceId String?
+  price         Float
+  interval      String         @default("month")
+  features      String?
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
-  userId        String         @map("user_id")
+  userId        String
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   subscriptions Subscription[]
-
-  @@map("Plan")
 }
 
 model Subscription {
-  id                   String    @id @default(cuid()) @map("id")
-  customerEmail        String    @map("customer_email")
-  stripeSubscriptionId String?   @map("stripe_subscription_id")
-  status               String    @default("active") @map("status")
-  currentPeriodEnd     DateTime? @map("current_period_end")
-  createdAt            DateTime  @default(now()) @map("created_at")
+  id                   String    @id @default(cuid())
+  customerEmail        String
+  stripeSubscriptionId String?
+  status               String    @default("active")
+  currentPeriodEnd     DateTime?
+  createdAt            DateTime  @default(now())
 
-  planId String @map("plan_id")
+  planId String
   plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
-
-  @@map("Subscription")
 }
 
 model WebhookLog {
-  id        String   @id @default(cuid()) @map("id")
-  eventId   String   @unique @map("event_id")
-  eventType String   @map("event_type")
-  payload   String   @map("payload")
-  processed Boolean  @default(false) @map("processed")
-  error     String?  @map("error")
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@map("WebhookLog")
+  id        String   @id @default(cuid())
+  eventId   String   @unique
+  eventType String
+  payload   String
+  processed Boolean  @default(false)
+  error     String?
+  createdAt DateTime @default(now())
 }
