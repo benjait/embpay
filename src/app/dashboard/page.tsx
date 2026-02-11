@@ -69,7 +69,7 @@ export default function DashboardPage() {
         controller.abort();
       }, 15000);
       
-      const res = await fetch("/api/dashboard/test", {
+      const res = await fetch("/api/dashboard/simple", {
         credentials: 'include',
         headers: {
           'Accept': 'application/json',
