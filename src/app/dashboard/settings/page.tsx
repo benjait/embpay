@@ -106,25 +106,30 @@ export default function SettingsPage() {
   const handleConnectStripe = async () => {
     setConnecting(true);
     try {
-      const res = await fetch("/api/stripe/connect");
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-        return;
-      }
-    } catch {
-      // Fallback demo behavior
+      // Direct redirect to Stripe Connect OAuth
+      window.location.href = "/api/stripe/connect";
+    } catch (error) {
+      console.error("Connect error:", error);
+      setConnecting(false);
+      setError("Failed to initiate Stripe connection");
     }
-    // Demo fallback
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setConnecting(false);
-    updateField("stripeConnected", true);
-    updateField("stripeAccountId", "acct_1NqD6g2eZvKYlo2C");
   };
 
-  const handleDisconnectStripe = () => {
-    updateField("stripeConnected", false);
-    updateField("stripeAccountId", "");
+  const handleDisconnectStripe = async () => {
+    if (!confirm("Disconnect Stripe? You won't be able to receive payments.")) {
+      return;
+    }
+    try {
+      const res = await fetch("/api/stripe/disconnect", { method: "POST" });
+      if (res.ok) {
+        updateField("stripeConnected", false);
+        updateField("stripeAccountId", "");
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error("Disconnect error:", error);
+      setError("Failed to disconnect Stripe");
+    }
   };
 
   const accentColors = [
