@@ -35,18 +35,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    // Check admin access
-    fetch("/api/auth/me")
+    // Check admin access via dedicated check endpoint
+    fetch("/api/admin/check")
       .then(res => res.json())
-      .then(async (data) => {
-        if (!data.user) {
-          router.push("/auth/login");
-          return;
-        }
-        // Check role
-        const res = await fetch("/api/admin/dashboard");
-        if (res.status === 403) {
-          router.push("/dashboard");
+      .then((data) => {
+        if (!data.success) {
+          // Not admin or not logged in
+          if (data.step === "auth" || !data.authUser) {
+            router.push("/auth/login");
+          } else {
+            router.push("/dashboard");
+          }
           return;
         }
         setAuthorized(true);
