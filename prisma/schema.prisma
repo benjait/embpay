@@ -23,7 +23,7 @@ model User {
   plans    Plan[]
   coupons  Coupon[]
 
-  @@map("User")
+  @@map("users")
 }
 
 model Product {
@@ -49,7 +49,7 @@ model Product {
   user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   orders Order[]
 
-  @@map("Product")
+  @@map("products")
 }
 
 model Order {
@@ -72,7 +72,7 @@ model Order {
   userId    String  @map("user_id")
   user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("Order")
+  @@map("orders")
 }
 
 model Coupon {
@@ -88,7 +88,7 @@ model Coupon {
   userId String @map("user_id")
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("Coupon")
+  @@map("coupons")
 }
 
 model Plan {
@@ -106,7 +106,7 @@ model Plan {
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   subscriptions Subscription[]
 
-  @@map("Plan")
+  @@map("plans")
 }
 
 model Subscription {
@@ -120,7 +120,7 @@ model Subscription {
   planId String @map("plan_id")
   plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
 
-  @@map("Subscription")
+  @@map("subscriptions")
 }
 
 model WebhookLog {
@@ -132,5 +132,5 @@ model WebhookLog {
   error     String?
   createdAt DateTime @default(now()) @map("created_at")
 
-  @@map("WebhookLog")
+  @@map("webhook_logs")
 }
