@@ -26,6 +26,7 @@ export function getConnectOAuthUrl(userId: string, email: string): string {
   const clientId = process.env.STRIPE_CONNECT_CLIENT_ID || "";
   
   const params = new URLSearchParams({
+    response_type: "code",
     client_id: clientId,
     state: JSON.stringify({ userId, email }),
     scope: "read_write",
