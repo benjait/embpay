@@ -105,6 +105,7 @@ export type PlanType = keyof typeof PLAN_LIMITS;
 
 /**
  * Check if a merchant has reached their plan limits.
+ * Returns detailed info about current usage and limits.
  */
 export async function checkPlanLimit(
   userId: string,
@@ -112,10 +113,19 @@ export async function checkPlanLimit(
 ): Promise<{ allowed: boolean; limit: number; current: number; plan: string }> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { plan: true },
+    select: { plan: true, planExpiresAt: true },
   });
 
-  const plan = (user?.plan || "free") as PlanType;
+  let plan = (user?.plan || "free") as PlanType;
+  
+  // Check if paid plan has expired
+  if (plan !== "free" && user?.planExpiresAt) {
+    if (new Date(user.planExpiresAt) < new Date()) {
+      // Plan expired, treat as free
+      plan = "free";
+    }
+  }
+
   const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.free;
 
   if (check === "products") {
@@ -144,4 +154,26 @@ export async function checkPlanLimit(
   }
 
   return { allowed: true, limit: Infinity, current: 0, plan };
+}
+
+/**
+ * Enforce plan limits - throws error if limit exceeded.
+ * Use this before creating new products/processing orders.
+ */
+export async function enforcePlanLimit(
+  userId: string,
+  check: "products" | "orders"
+): Promise<void> {
+  const result = await checkPlanLimit(userId, check);
+  
+  if (!result.allowed) {
+    const limitType = check === "products" ? "product" : "order";
+    const upgradeMessage = result.plan === "free" 
+      ? "Upgrade to Pro for unlimited products and orders."
+      : "You've reached your plan limit.";
+    
+    throw new Error(
+      `${limitType.charAt(0).toUpperCase() + limitType.slice(1)} limit reached (${result.current}/${result.limit}). ${upgradeMessage}`
+    );
+  }
 }

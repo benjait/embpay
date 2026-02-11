@@ -1,542 +1,386 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-  Plus,
-  CreditCard,
-  Users,
-  ToggleLeft,
-  ToggleRight,
-  Trash2,
-  Search,
-  Repeat,
-  DollarSign,
-  Star,
-  X,
-  Check,
-  Loader2,
-} from "lucide-react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Check, Loader2, Zap, Rocket, Gift, CreditCard } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input, Textarea, Select } from "@/components/ui/input";
-import { Modal } from "@/components/ui/modal";
 
-interface Plan {
-  id: string;
-  name: string;
-  stripePriceId: string | null;
-  price: number;
-  interval: string;
-  features: string | null;
-  isActive: boolean;
-  createdAt: string;
-  _count: { subscriptions: number };
+interface UserData {
+  plan: "free" | "pro" | "scale";
+  planExpiresAt: string | null;
+  productCount: number;
+  monthlyOrders: number;
 }
 
-interface PlanForm {
-  name: string;
-  price: string;
-  interval: string;
-  features: string;
-  stripePriceId: string;
-}
-
-const emptyForm: PlanForm = {
-  name: "",
-  price: "",
-  interval: "month",
-  features: "",
-  stripePriceId: "",
+const PLANS = {
+  free: {
+    name: "Free",
+    price: 0,
+    icon: Gift,
+    description: "Perfect for getting started",
+    features: [
+      "Up to 10 products",
+      "Up to 100 orders/month",
+      "Basic analytics",
+      "Email support",
+      "Stripe integration",
+      "Embed checkout",
+    ],
+    limits: {
+      maxProducts: 10,
+      maxOrders: 100,
+    },
+  },
+  pro: {
+    name: "Pro",
+    price: 29,
+    icon: Zap,
+    description: "For growing businesses",
+    features: [
+      "Unlimited products",
+      "Unlimited orders",
+      "Advanced analytics",
+      "License key generation",
+      "Priority support",
+      "Custom branding",
+      "Webhook notifications",
+    ],
+    limits: {
+      maxProducts: Infinity,
+      maxOrders: Infinity,
+    },
+    popular: true,
+  },
+  scale: {
+    name: "Scale",
+    price: 79,
+    icon: Rocket,
+    description: "For high-volume sellers",
+    features: [
+      "Everything in Pro",
+      "API access",
+      "White-label solution",
+      "Custom domain",
+      "Dedicated support",
+      "SLA guarantee",
+      "Advanced integrations",
+      "Multi-user accounts",
+    ],
+    limits: {
+      maxProducts: Infinity,
+      maxOrders: Infinity,
+    },
+  },
 };
 
 export default function PlansPage() {
-  const [plans, setPlans] = useState<Plan[]>([]);
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState<PlanForm>(emptyForm);
-  const [saving, setSaving] = useState(false);
-  const [errors, setErrors] = useState<Partial<Record<keyof PlanForm, string>>>({});
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
+  const [upgrading, setUpgrading] = useState<string | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
 
-  const fetchPlans = async () => {
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("success") === "true") {
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 5000);
+      // Remove query param
+      window.history.replaceState({}, "", "/dashboard/plans");
+    }
+    fetchUserData();
+  }, []);
+
+  const fetchUserData = async () => {
     try {
-      const res = await fetch("/api/plans", { credentials: "include" });
+      const res = await fetch("/api/dashboard/stats", { credentials: "include" });
       const data = await res.json();
       if (data.success) {
-        setPlans(data.data);
+        setUserData({
+          plan: data.data.user.plan || "free",
+          planExpiresAt: data.data.user.planExpiresAt,
+          productCount: data.data.products || 0,
+          monthlyOrders: data.data.orders || 0,
+        });
       }
-    } catch {
-      // silently fail
+    } catch (error) {
+      console.error("Failed to fetch user data:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchPlans();
-  }, []);
-
-  const filteredPlans = plans.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const totalRevenue = plans.reduce((sum, p) => {
-    if (!p.isActive) return sum;
-    return sum + p.price * p._count.subscriptions;
-  }, 0);
-
-  const totalSubscribers = plans.reduce(
-    (sum, p) => sum + p._count.subscriptions,
-    0
-  );
-
-  const activePlans = plans.filter((p) => p.isActive).length;
-
-  const validate = (): boolean => {
-    const newErrors: Partial<Record<keyof PlanForm, string>> = {};
-    if (!form.name.trim()) newErrors.name = "Plan name is required";
-    if (!form.price || parseFloat(form.price) <= 0)
-      newErrors.price = "Price must be greater than 0";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validate()) return;
-
-    setSaving(true);
+  const handleUpgrade = async (plan: "pro" | "scale") => {
+    setUpgrading(plan);
     try {
-      const features = form.features
-        .split("\n")
-        .map((f) => f.trim())
-        .filter(Boolean);
-
-      const res = await fetch("/api/plans", {
+      const res = await fetch("/api/subscriptions/create-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: form.name,
-          price: parseFloat(form.price),
-          interval: form.interval,
-          features: features.length > 0 ? features : null,
-          stripePriceId: form.stripePriceId || null,
-        }),
+        body: JSON.stringify({ plan }),
       });
 
       const data = await res.json();
-      if (data.success) {
-        setShowCreate(false);
-        setForm(emptyForm);
-        setErrors({});
-        fetchPlans();
+      if (data.success && data.checkoutUrl) {
+        // Redirect to Stripe Checkout
+        window.location.href = data.checkoutUrl;
+      } else {
+        alert(data.error || "Failed to create checkout session");
+        setUpgrading(null);
       }
-    } catch {
-      // silently fail
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const toggleActive = async (plan: Plan) => {
-    try {
-      const res = await fetch("/api/plans", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: plan.id, isActive: !plan.isActive }),
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        setPlans((prev) =>
-          prev.map((p) =>
-            p.id === plan.id ? { ...p, isActive: !p.isActive } : p
-          )
-        );
-      }
-    } catch {
-      // silently fail
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!deleteId) return;
-    setDeleting(true);
-    try {
-      const res = await fetch(`/api/plans?id=${deleteId}`, {
-        method: "DELETE",
-      });
-      const data = await res.json();
-      if (data.success) {
-        setPlans((prev) => prev.filter((p) => p.id !== deleteId));
-      }
-    } catch {
-      // silently fail
-    } finally {
-      setDeleting(false);
-      setDeleteId(null);
-    }
-  };
-
-  const formatPrice = (price: number, interval: string) => {
-    const formatted = new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(price);
-    return `${formatted}/${interval === "year" ? "yr" : "mo"}`;
-  };
-
-  const parseFeatures = (features: string | null): string[] => {
-    if (!features) return [];
-    try {
-      return JSON.parse(features);
-    } catch {
-      return [];
+    } catch (error) {
+      console.error("Upgrade error:", error);
+      alert("Failed to start checkout. Please try again.");
+      setUpgrading(null);
     }
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 className="h-8 w-8 text-indigo-400 animate-spin" />
+        <Loader2 className="h-8 w-8 text-amber-400 animate-spin" />
       </div>
     );
   }
 
+  const currentPlan = userData?.plan || "free";
+  const isExpired = userData?.planExpiresAt
+    ? new Date(userData.planExpiresAt) < new Date()
+    : false;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">
-            Subscription Plans
-          </h1>
-          <p className="text-slate-400 mt-0.5">
-            Create and manage recurring billing plans
-          </p>
-        </div>
-        <Button onClick={() => setShowCreate(true)}>
-          <Plus className="h-4 w-4" />
-          New Plan
-        </Button>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="py-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center">
-                <CreditCard className="h-5 w-5 text-indigo-400" />
-              </div>
-              <div>
-                <p className="text-sm text-slate-400">Active Plans</p>
-                <p className="text-xl font-bold text-white">{activePlans}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="py-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
-                <Users className="h-5 w-5 text-purple-400" />
-              </div>
-              <div>
-                <p className="text-sm text-slate-400">Total Subscribers</p>
-                <p className="text-xl font-bold text-white">
-                  {totalSubscribers}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="py-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                <DollarSign className="h-5 w-5 text-emerald-400" />
-              </div>
-              <div>
-                <p className="text-sm text-slate-400">Monthly Revenue</p>
-                <p className="text-xl font-bold text-white">
-                  {new Intl.NumberFormat("en-US", {
-                    style: "currency",
-                    currency: "USD",
-                  }).format(totalRevenue)}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Search */}
-      {plans.length > 0 && (
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-          <input
-            type="text"
-            placeholder="Search plans..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/40 transition"
-          />
-        </div>
-      )}
-
-      {/* Plans List */}
-      {plans.length === 0 ? (
-        <Card>
-          <CardContent className="py-16 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 flex items-center justify-center mx-auto mb-4">
-              <Repeat className="h-8 w-8 text-indigo-400" />
-            </div>
-            <h3 className="text-lg font-semibold text-white mb-1">
-              No plans yet
-            </h3>
-            <p className="text-slate-400 text-sm mb-6 max-w-sm mx-auto">
-              Create your first subscription plan to start earning recurring
-              revenue.
-            </p>
-            <Button onClick={() => setShowCreate(true)}>
-              <Plus className="h-4 w-4" />
-              Create Plan
-            </Button>
-          </CardContent>
-        </Card>
-      ) : filteredPlans.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-slate-400">
-              No plans matching &ldquo;{search}&rdquo;
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filteredPlans.map((plan) => {
-            const features = parseFeatures(plan.features);
-            return (
-              <Card
-                key={plan.id}
-                className={`relative transition-all duration-200 ${
-                  !plan.isActive ? "opacity-60" : ""
-                }`}
-              >
-                <CardContent className="py-5">
-                  {/* Header */}
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-base font-semibold text-white truncate">
-                          {plan.name}
-                        </h3>
-                        <Badge
-                          variant={plan.isActive ? "success" : "default"}
-                        >
-                          {plan.isActive ? "Active" : "Inactive"}
-                        </Badge>
-                      </div>
-                      <p className="text-2xl font-bold text-indigo-400">
-                        {formatPrice(plan.price, plan.interval)}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Features */}
-                  {features.length > 0 && (
-                    <ul className="space-y-1.5 mb-4">
-                      {features.map((feature, i) => (
-                        <li
-                          key={i}
-                          className="flex items-center gap-2 text-sm text-slate-300"
-                        >
-                          <Check className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-
-                  {/* Stats */}
-                  <div className="flex items-center gap-4 py-3 border-t border-white/[0.06]">
-                    <div className="flex items-center gap-1.5 text-sm text-slate-400">
-                      <Users className="h-3.5 w-3.5" />
-                      {plan._count.subscriptions} subscriber
-                      {plan._count.subscriptions !== 1 ? "s" : ""}
-                    </div>
-                    {plan.stripePriceId && (
-                      <div className="flex items-center gap-1.5 text-sm text-slate-500">
-                        <CreditCard className="h-3.5 w-3.5" />
-                        Stripe linked
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-2 mt-3">
-                    <button
-                      onClick={() => toggleActive(plan)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                        plan.isActive
-                          ? "text-amber-400 hover:bg-amber-500/10"
-                          : "text-emerald-400 hover:bg-emerald-500/10"
-                      }`}
-                    >
-                      {plan.isActive ? (
-                        <>
-                          <ToggleRight className="h-3.5 w-3.5" />
-                          Deactivate
-                        </>
-                      ) : (
-                        <>
-                          <ToggleLeft className="h-3.5 w-3.5" />
-                          Activate
-                        </>
-                      )}
-                    </button>
-                    <button
-                      onClick={() => setDeleteId(plan.id)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-red-400 hover:bg-red-500/10 transition-colors"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Delete
-                    </button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Create Plan Modal */}
-      <Modal
-        open={showCreate}
-        onClose={() => {
-          setShowCreate(false);
-          setForm(emptyForm);
-          setErrors({});
-        }}
-        title="Create Subscription Plan"
-      >
-        <form onSubmit={handleCreate} className="space-y-5">
-          <Input
-            label="Plan Name"
-            placeholder="e.g., Pro Monthly"
-            value={form.name}
-            onChange={(e) => {
-              setForm((f) => ({ ...f, name: e.target.value }));
-              if (errors.name)
-                setErrors((e) => {
-                  const n = { ...e };
-                  delete n.name;
-                  return n;
-                });
-            }}
-            error={errors.name}
-          />
-
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Price (USD)"
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="9.99"
-              value={form.price}
-              onChange={(e) => {
-                setForm((f) => ({ ...f, price: e.target.value }));
-                if (errors.price)
-                  setErrors((e) => {
-                    const n = { ...e };
-                    delete n.price;
-                    return n;
-                  });
-              }}
-              error={errors.price}
-            />
-            <Select
-              label="Billing Interval"
-              options={[
-                { value: "month", label: "Monthly" },
-                { value: "year", label: "Yearly" },
-              ]}
-              value={form.interval}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, interval: e.target.value }))
-              }
-            />
-          </div>
-
-          <Textarea
-            label="Features"
-            placeholder="One feature per line&#10;e.g., Unlimited access&#10;Priority support&#10;Custom branding"
-            value={form.features}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, features: e.target.value }))
-            }
-            rows={4}
-          />
-
-          <Input
-            label="Stripe Price ID"
-            placeholder="price_xxxxxxxxx (optional)"
-            value={form.stripePriceId}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, stripePriceId: e.target.value }))
-            }
-            hint="Link to an existing Stripe price for automatic billing"
-          />
-
-          <div className="flex justify-end gap-3 pt-2">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => {
-                setShowCreate(false);
-                setForm(emptyForm);
-                setErrors({});
-              }}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" loading={saving}>
-              <Plus className="h-4 w-4" />
-              Create Plan
-            </Button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* Delete Confirmation Modal */}
-      <Modal
-        open={!!deleteId}
-        onClose={() => setDeleteId(null)}
-        title="Delete Plan"
-      >
-        <p className="text-sm text-slate-400 mb-6">
-          Are you sure you want to delete this plan? This action cannot be
-          undone. Plans with active subscribers cannot be deleted.
+      <div className="text-center max-w-3xl mx-auto">
+        <h1 className="text-3xl font-bold text-white tracking-tight mb-3">
+          Choose Your Plan
+        </h1>
+        <p className="text-slate-400 text-lg">
+          Scale your business with the right tools. Upgrade anytime.
         </p>
-        <div className="flex justify-end gap-3">
-          <Button variant="ghost" onClick={() => setDeleteId(null)}>
-            Cancel
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={handleDelete}
-            loading={deleting}
-          >
-            <Trash2 className="h-4 w-4" />
-            Delete Plan
-          </Button>
+      </div>
+
+      {/* Success Banner */}
+      {showSuccess && (
+        <div className="max-w-4xl mx-auto bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-4 flex items-center gap-3">
+          <Check className="h-5 w-5 text-emerald-400 flex-shrink-0" />
+          <div>
+            <p className="text-emerald-400 font-medium">
+              Subscription activated successfully!
+            </p>
+            <p className="text-emerald-400/70 text-sm">
+              Your plan has been upgraded. Enjoy your new features!
+            </p>
+          </div>
         </div>
-      </Modal>
+      )}
+
+      {/* Current Plan Info */}
+      {userData && (
+        <div className="max-w-4xl mx-auto bg-slate-800/40 border border-slate-700/50 rounded-lg p-5">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <p className="text-slate-400 text-sm mb-1">Current Plan</p>
+              <div className="flex items-center gap-3">
+                <p className="text-xl font-bold text-white capitalize">
+                  {currentPlan}
+                </p>
+                {currentPlan !== "free" && userData.planExpiresAt && (
+                  <Badge variant={isExpired ? "destructive" : "default"}>
+                    {isExpired
+                      ? "Expired"
+                      : `Renews ${new Date(userData.planExpiresAt).toLocaleDateString()}`}
+                  </Badge>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-6 text-sm">
+              <div>
+                <p className="text-slate-400">Products</p>
+                <p className="text-white font-semibold">
+                  {userData.productCount} / {PLANS[currentPlan].limits.maxProducts === Infinity ? "∞" : PLANS[currentPlan].limits.maxProducts}
+                </p>
+              </div>
+              <div>
+                <p className="text-slate-400">Orders (this month)</p>
+                <p className="text-white font-semibold">
+                  {userData.monthlyOrders} / {PLANS[currentPlan].limits.maxOrders === Infinity ? "∞" : PLANS[currentPlan].limits.maxOrders}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Plans Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+        {(["free", "pro", "scale"] as const).map((planKey) => {
+          const plan = PLANS[planKey];
+          const Icon = plan.icon;
+          const isCurrent = currentPlan === planKey;
+          const canUpgrade = planKey !== "free" && currentPlan === "free";
+
+          return (
+            <Card
+              key={planKey}
+              className={`relative transition-all duration-300 ${
+                plan.popular
+                  ? "ring-2 ring-amber-500/50 shadow-xl shadow-amber-500/10"
+                  : isCurrent
+                  ? "ring-2 ring-emerald-500/50"
+                  : ""
+              }`}
+            >
+              {plan.popular && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-lg">
+                    Most Popular
+                  </Badge>
+                </div>
+              )}
+
+              <CardContent className="py-8 px-6">
+                {/* Header */}
+                <div className="text-center mb-6">
+                  <div
+                    className={`w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center ${
+                      plan.popular
+                        ? "bg-gradient-to-br from-amber-500/20 to-orange-500/20"
+                        : planKey === "scale"
+                        ? "bg-gradient-to-br from-purple-500/20 to-pink-500/20"
+                        : "bg-slate-700/30"
+                    }`}
+                  >
+                    <Icon
+                      className={`h-7 w-7 ${
+                        plan.popular
+                          ? "text-amber-400"
+                          : planKey === "scale"
+                          ? "text-purple-400"
+                          : "text-slate-400"
+                      }`}
+                    />
+                  </div>
+
+                  <h3 className="text-xl font-bold text-white mb-1">
+                    {plan.name}
+                  </h3>
+                  <p className="text-slate-400 text-sm mb-4">
+                    {plan.description}
+                  </p>
+
+                  <div className="flex items-baseline justify-center gap-1">
+                    <span className="text-4xl font-bold text-white">
+                      ${plan.price}
+                    </span>
+                    <span className="text-slate-400">/month</span>
+                  </div>
+                </div>
+
+                {/* Current Plan Badge */}
+                {isCurrent && (
+                  <div className="mb-4">
+                    <Badge className="w-full justify-center bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                      <Check className="h-3.5 w-3.5 mr-1" />
+                      Current Plan
+                    </Badge>
+                  </div>
+                )}
+
+                {/* CTA Button */}
+                {canUpgrade && (
+                  <Button
+                    onClick={() => handleUpgrade(planKey)}
+                    disabled={!!upgrading}
+                    loading={upgrading === planKey}
+                    className={`w-full mb-6 ${
+                      plan.popular
+                        ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-lg shadow-amber-500/25"
+                        : ""
+                    }`}
+                  >
+                    <CreditCard className="h-4 w-4" />
+                    Upgrade to {plan.name}
+                  </Button>
+                )}
+
+                {!isCurrent && !canUpgrade && planKey !== "free" && (
+                  <div className="mb-6">
+                    <Button variant="outline" disabled className="w-full">
+                      {currentPlan === planKey ? "Current Plan" : "Contact Sales"}
+                    </Button>
+                  </div>
+                )}
+
+                {planKey === "free" && !isCurrent && (
+                  <div className="mb-6 h-[42px]" />
+                )}
+
+                {/* Features */}
+                <div className="space-y-3 pt-4 border-t border-white/[0.06]">
+                  {plan.features.map((feature, i) => (
+                    <div key={i} className="flex items-start gap-3">
+                      <Check
+                        className={`h-5 w-5 flex-shrink-0 mt-0.5 ${
+                          plan.popular
+                            ? "text-amber-400"
+                            : planKey === "scale"
+                            ? "text-purple-400"
+                            : "text-emerald-400"
+                        }`}
+                      />
+                      <span className="text-sm text-slate-300">{feature}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* FAQ Section */}
+      <div className="max-w-3xl mx-auto pt-8">
+        <h2 className="text-xl font-bold text-white mb-6 text-center">
+          Frequently Asked Questions
+        </h2>
+        <div className="space-y-4">
+          <Card>
+            <CardContent className="py-4">
+              <h3 className="text-white font-semibold mb-2">
+                Can I change plans anytime?
+              </h3>
+              <p className="text-slate-400 text-sm">
+                Yes! You can upgrade from Free to Pro or Scale at any time. Downgrades
+                will take effect at the end of your current billing period.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="py-4">
+              <h3 className="text-white font-semibold mb-2">
+                What happens if I exceed my plan limits?
+              </h3>
+              <p className="text-slate-400 text-sm">
+                On the Free plan, you'll be prompted to upgrade once you reach 10 products
+                or 100 orders per month. Pro and Scale plans have no limits.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="py-4">
+              <h3 className="text-white font-semibold mb-2">
+                Is there a refund policy?
+              </h3>
+              <p className="text-slate-400 text-sm">
+                We offer a 14-day money-back guarantee on all paid plans. Contact support
+                if you're not satisfied.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }

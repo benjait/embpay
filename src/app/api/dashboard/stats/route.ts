@@ -104,6 +104,36 @@ export async function GET(request: NextRequest) {
       chartData.push({ date: dateStr, label: dayLabel, revenue: dayRevenue });
     }
 
+    // Get current month order count for plan limits
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    let monthlyOrders = 0;
+    try {
+      monthlyOrders = await prisma.order.count({
+        where: { userId: user.id, createdAt: { gte: startOfMonth } },
+      });
+    } catch {
+      monthlyOrders = 0;
+    }
+
+    // Get full user data including plan info
+    let userData = null;
+    try {
+      userData = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          plan: true,
+          planExpiresAt: true,
+        },
+      });
+    } catch {
+      userData = { ...user, plan: "free", planExpiresAt: null };
+    }
+
     console.log("[Dashboard API] Success - products:", totalProducts, "orders:", totalOrders);
 
     return NextResponse.json({
@@ -125,6 +155,10 @@ export async function GET(request: NextRequest) {
           createdAt: o?.createdAt?.toISOString() || new Date().toISOString(),
         })),
         chartData,
+        // For plans page
+        user: userData,
+        products: totalProducts,
+        orders: monthlyOrders,
       },
     });
     
