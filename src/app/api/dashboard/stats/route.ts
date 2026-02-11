@@ -198,7 +198,7 @@ export async function GET(request: NextRequest) {
       },
     };
     
-    console.log("Dashboard response ready");
+    console.log("Dashboard response ready:", JSON.stringify(response.data, null, 2));
     return NextResponse.json(response);
     
   } catch (error: any) {
