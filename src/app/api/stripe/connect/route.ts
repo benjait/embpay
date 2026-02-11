@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth";
-import { getConnectOAuthUrl, stripe, PLATFORM_URL } from "@/lib/stripe";
+import { createConnectAccount, stripe, PLATFORM_URL } from "@/lib/stripe";
+import prisma from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
   try {
@@ -30,9 +31,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Generate OAuth link - allows user to connect existing account OR create new one
-    const oauthUrl = getConnectOAuthUrl(user.id, user.email);
-    return NextResponse.redirect(oauthUrl);
+    // Create Standard Connect account (Account Links flow)
+    // Note: For OAuth flow (connect existing accounts), configure OAuth in Stripe Dashboard
+    const { accountId, onboardingUrl } = await createConnectAccount(
+      user.id,
+      user.email
+    );
+
+    // Save account ID immediately (before onboarding completes)
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { stripeAccountId: accountId },
+    });
+
+    return NextResponse.redirect(onboardingUrl);
   } catch (error) {
     console.error("Stripe connect error:", error);
     return NextResponse.redirect(
