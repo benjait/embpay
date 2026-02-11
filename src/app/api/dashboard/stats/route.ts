@@ -1,10 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { PrismaClient } from "@prisma/client";
 import { getAuthUser } from "@/lib/auth";
-import { handleApiError } from "@/lib/errors";
+
+// Create Prisma client with error handling
+const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
+
+const prisma = globalForPrisma.prisma || new PrismaClient({
+  datasourceUrl: process.env.DATABASE_URL,
+  log: process.env.NODE_ENV === "development" ? ["query", "error"] : ["error"],
+});
+
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 
 export async function GET(request: NextRequest) {
   try {
+    // Test database connection first
+    await prisma.$connect();
+    
     const user = await getAuthUser(request);
     if (!user) {
       return NextResponse.json(
@@ -18,50 +30,69 @@ export async function GET(request: NextRequest) {
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
 
-    // Run all queries in parallel
-    const [
-      totalProducts,
-      totalOrders,
-      completedOrders,
-      completedOrdersPrevMonth,
-      allCompletedOrders,
-      recentOrders,
-      last7DaysOrders,
-    ] = await Promise.all([
-      // Total active products
-      prisma.product.count({
+    // Run queries with individual error handling
+    let totalProducts = 0;
+    let totalOrders = 0;
+    let completedOrders = 0;
+    let completedOrdersPrevMonth = 0;
+    let allCompletedOrders: any[] = [];
+    let recentOrders: any[] = [];
+    let last7DaysOrders: any[] = [];
+
+    try {
+      totalProducts = await prisma.product.count({
         where: { userId: user.id },
-      }),
-      // Total orders
-      prisma.order.count({
+      });
+    } catch (e) {
+      console.error("Error counting products:", e);
+    }
+
+    try {
+      totalOrders = await prisma.order.count({
         where: { userId: user.id },
-      }),
-      // Completed orders this month
-      prisma.order.count({
+      });
+    } catch (e) {
+      console.error("Error counting orders:", e);
+    }
+
+    try {
+      completedOrders = await prisma.order.count({
         where: {
           userId: user.id,
           status: "completed",
           createdAt: { gte: thirtyDaysAgo },
         },
-      }),
-      // Completed orders prev month (for comparison)
-      prisma.order.count({
+      });
+    } catch (e) {
+      console.error("Error counting completed orders:", e);
+    }
+
+    try {
+      completedOrdersPrevMonth = await prisma.order.count({
         where: {
           userId: user.id,
           status: "completed",
           createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo },
         },
-      }),
-      // All completed orders (for revenue)
-      prisma.order.findMany({
+      });
+    } catch (e) {
+      console.error("Error counting prev month orders:", e);
+    }
+
+    try {
+      allCompletedOrders = await prisma.order.findMany({
         where: {
           userId: user.id,
           status: "completed",
         },
         select: { amount: true, createdAt: true },
-      }),
-      // Recent orders with product info
-      prisma.order.findMany({
+      });
+    } catch (e) {
+      console.error("Error fetching completed orders:", e);
+    }
+
+    try {
+      recentOrders = await prisma.order.findMany({
         where: { userId: user.id },
         orderBy: { createdAt: "desc" },
         take: 10,
@@ -70,34 +101,37 @@ export async function GET(request: NextRequest) {
             select: { name: true },
           },
         },
-      }),
-      // Last 7 days orders for chart
-      prisma.order.findMany({
+      });
+    } catch (e) {
+      console.error("Error fetching recent orders:", e);
+    }
+
+    try {
+      last7DaysOrders = await prisma.order.findMany({
         where: {
           userId: user.id,
           status: "completed",
           createdAt: { gte: sevenDaysAgo },
         },
         select: { amount: true, createdAt: true },
-      }),
-    ]);
+      });
+    } catch (e) {
+      console.error("Error fetching last 7 days orders:", e);
+    }
 
-    // Calculate total revenue
+    // Calculate metrics
     const totalRevenue = allCompletedOrders.reduce(
-      (sum, o) => sum + o.amount,
+      (sum, o) => sum + (o.amount || 0),
       0
     );
 
-    // Revenue this month vs last month
     const revenueThisMonth = allCompletedOrders
       .filter((o) => o.createdAt >= thirtyDaysAgo)
-      .reduce((sum, o) => sum + o.amount, 0);
+      .reduce((sum, o) => sum + (o.amount || 0), 0);
 
     const revenuePrevMonth = allCompletedOrders
-      .filter(
-        (o) => o.createdAt >= sixtyDaysAgo && o.createdAt < thirtyDaysAgo
-      )
-      .reduce((sum, o) => sum + o.amount, 0);
+      .filter((o) => o.createdAt >= sixtyDaysAgo && o.createdAt < thirtyDaysAgo)
+      .reduce((sum, o) => sum + (o.amount || 0), 0);
 
     const revenueChange =
       revenuePrevMonth > 0
@@ -108,20 +142,14 @@ export async function GET(request: NextRequest) {
 
     const ordersChange =
       completedOrdersPrevMonth > 0
-        ? ((completedOrders - completedOrdersPrevMonth) /
-            completedOrdersPrevMonth) *
-          100
+        ? ((completedOrders - completedOrdersPrevMonth) / completedOrdersPrevMonth) * 100
         : completedOrders > 0
           ? 100
           : 0;
 
-    // Conversion rate: completed / total
-    const conversionRate =
-      totalOrders > 0
-        ? (allCompletedOrders.length / totalOrders) * 100
-        : 0;
+    const conversionRate = totalOrders > 0 ? (allCompletedOrders.length / totalOrders) * 100 : 0;
 
-    // Build last 7 days chart data
+    // Build chart data
     const chartData: { date: string; label: string; revenue: number }[] = [];
     for (let i = 6; i >= 0; i--) {
       const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
@@ -130,13 +158,9 @@ export async function GET(request: NextRequest) {
 
       const dayRevenue = last7DaysOrders
         .filter((o) => o.createdAt.toISOString().split("T")[0] === dateStr)
-        .reduce((sum, o) => sum + o.amount, 0);
+        .reduce((sum, o) => sum + (o.amount || 0), 0);
 
-      chartData.push({
-        date: dateStr,
-        label: dayLabel,
-        revenue: dayRevenue,
-      });
+      chartData.push({ date: dateStr, label: dayLabel, revenue: dayRevenue });
     }
 
     return NextResponse.json({
@@ -152,7 +176,7 @@ export async function GET(request: NextRequest) {
           id: o.id,
           customerEmail: o.customerEmail,
           customerName: o.customerName,
-          productName: o.product.name,
+          productName: o.product?.name || "Unknown",
           amount: o.amount,
           status: o.status,
           createdAt: o.createdAt.toISOString(),
@@ -160,7 +184,15 @@ export async function GET(request: NextRequest) {
         chartData,
       },
     });
-  } catch (error) {
-    return handleApiError(error, "Dashboard stats");
+  } catch (error: any) {
+    console.error("Dashboard stats error:", error);
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: "Database error occurred",
+        details: process.env.NODE_ENV === "development" ? error.message : undefined
+      },
+      { status: 500 }
+    );
   }
 }
