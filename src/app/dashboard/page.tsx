@@ -28,7 +28,7 @@ export default function DashboardPage() {
 
     async function loadData() {
       try {
-        const res = await fetch("/api/dashboard/simple");
+        const res = await fetch("/api/dashboard/stats");
         
         if (!mounted) return;
 
@@ -39,7 +39,12 @@ export default function DashboardPage() {
         const json = await res.json();
         
         if (json.success && json.data) {
-          setData(json.data);
+          setData({
+            totalRevenue: json.data.totalRevenue || 0,
+            totalOrders: json.data.totalOrders || 0,
+            totalProducts: json.data.totalProducts || 0,
+            conversionRate: json.data.conversionRate || 0,
+          });
           setError(null);
         } else {
           throw new Error(json.error || "Failed to load data");

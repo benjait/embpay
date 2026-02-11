@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
+import { sendOrderConfirmation, sendRefundNotification } from "@/lib/email";
 import Stripe from "stripe";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -95,8 +96,9 @@ export async function POST(request: NextRequest) {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
         const orderId = paymentIntent.metadata?.orderId;
 
+        let order;
         if (orderId) {
-          await prisma.order.update({
+          order = await prisma.order.update({
             where: { id: orderId },
             data: {
               status: "completed",
@@ -104,17 +106,39 @@ export async function POST(request: NextRequest) {
                 ? String(paymentIntent.latest_charge)
                 : null,
             },
+            include: { product: true },
           });
         } else {
           // Fallback: find by paymentIntentId
-          await prisma.order.updateMany({
+          const orders = await prisma.order.findMany({
             where: { stripePaymentIntentId: paymentIntent.id },
-            data: {
-              status: "completed",
-              stripePaymentId: paymentIntent.latest_charge
-                ? String(paymentIntent.latest_charge)
-                : null,
-            },
+            include: { product: true },
+          });
+          
+          if (orders.length > 0) {
+            order = orders[0];
+            await prisma.order.updateMany({
+              where: { stripePaymentIntentId: paymentIntent.id },
+              data: {
+                status: "completed",
+                stripePaymentId: paymentIntent.latest_charge
+                  ? String(paymentIntent.latest_charge)
+                  : null,
+              },
+            });
+          }
+        }
+
+        // Send confirmation email
+        if (order) {
+          await sendOrderConfirmation({
+            orderId: order.id,
+            customerName: order.customerName || 'Customer',
+            customerEmail: order.customerEmail,
+            productName: order.product.name,
+            amount: order.amount,
+            date: order.createdAt.toISOString(),
+            downloadUrl: order.product.downloadUrl || undefined,
           });
         }
         break;
@@ -150,10 +174,21 @@ export async function POST(request: NextRequest) {
         // Calculate refund amount from the charge
         const refundAmount = charge.amount_refunded; // in cents
 
+        let orders: any[] = [];
         if (paymentIntentId) {
           // Determine if full or partial refund
           const isFullRefund = charge.amount_refunded === charge.amount;
           const newStatus = isFullRefund ? "refunded" : "partially_refunded";
+
+          orders = await prisma.order.findMany({
+            where: {
+              OR: [
+                { stripePaymentIntentId: paymentIntentId },
+                { stripePaymentId: charge.id },
+              ],
+            },
+            include: { product: true },
+          });
 
           await prisma.order.updateMany({
             where: {
@@ -166,9 +201,26 @@ export async function POST(request: NextRequest) {
           });
         } else if (charge.id) {
           // Fallback: match by charge ID
+          orders = await prisma.order.findMany({
+            where: { stripePaymentId: charge.id },
+            include: { product: true },
+          });
+
           await prisma.order.updateMany({
             where: { stripePaymentId: charge.id },
             data: { status: "refunded" },
+          });
+        }
+
+        // Send refund notification email
+        for (const order of orders) {
+          await sendRefundNotification({
+            orderId: order.id,
+            customerName: order.customerName || 'Customer',
+            customerEmail: order.customerEmail,
+            productName: order.product.name,
+            amount: refundAmount / 100, // Convert cents to dollars
+            date: new Date().toISOString(),
           });
         }
         break;

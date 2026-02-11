@@ -17,10 +17,12 @@ import {
   ChevronDown,
   Zap,
   Loader2,
+  BarChart3,
 } from "lucide-react";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
   { label: "Products", href: "/dashboard/products", icon: Package },
   { label: "Plans", href: "/dashboard/plans", icon: Repeat },
   { label: "Orders", href: "/dashboard/orders", icon: ShoppingCart },
