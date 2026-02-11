@@ -221,6 +221,17 @@ export default function DashboardLayout({
                 <Settings className="h-4 w-4" />
                 Settings
               </Link>
+              <Link
+                href="/admin"
+                className="flex items-center gap-2 px-4 py-2.5 text-sm text-amber-400 hover:text-amber-300 hover:bg-amber-500/[0.06] transition-colors"
+                onClick={() => {
+                  setUserMenuOpen(false);
+                  setSidebarOpen(false);
+                }}
+              >
+                <Zap className="h-4 w-4" />
+                Admin Panel
+              </Link>
               <div className="mx-3 my-1 h-px bg-white/[0.06]" />
               <button
                 onClick={handleLogout}
