@@ -53,21 +53,17 @@ export default function DashboardLayout({
   const [authChecked, setAuthChecked] = useState(false);
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
 
-  // Auth check — read JWT from cookies, then fetch user info
+  // Auth check — use Supabase session instead of old JWT cookies
   useEffect(() => {
-    const token = getCookie("token") || getCookie("jwt") || getCookie("auth_token");
-    if (!token) {
-      router.replace("/auth/login");
-      return;
-    }
-    setAuthChecked(true);
-
-    // Fetch actual user data from the /api/auth/me endpoint
+    // Check for Supabase session cookies
+    const hasSupabaseSession = document.cookie.includes("sb-") || 
+                                document.cookie.includes("supabase");
+    
+    // Try to fetch user info first (works with Supabase SSR)
     fetch("/api/auth/me", { credentials: "include" })
       .then((res) => {
         if (res.status === 401) {
-          // Token is invalid/expired — redirect to login
-          document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+          // Not authenticated — redirect to login
           router.replace("/auth/login");
           return null;
         }
@@ -80,10 +76,14 @@ export default function DashboardLayout({
             email: data.data.email,
             businessName: data.data.businessName,
           });
+          setAuthChecked(true);
+        } else {
+          router.replace("/auth/login");
         }
       })
       .catch(() => {
-        // Silently fail — user info will show defaults
+        // Network error or auth failure
+        router.replace("/auth/login");
       });
   }, [router]);
 
@@ -100,10 +100,17 @@ export default function DashboardLayout({
     return pathname.startsWith(href);
   };
 
-  const handleLogout = () => {
-    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-    document.cookie = "jwt=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-    document.cookie = "auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+  const handleLogout = async () => {
+    try {
+      // Call logout API (will clear Supabase session)
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
+    // Redirect to login
     router.push("/auth/login");
   };
 

@@ -1,25 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase-server";
-import { handleApiError } from "@/lib/errors";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const cookieStore = await cookies();
     
-    const { error } = await supabase.auth.signOut();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          },
+        },
+      }
+    );
 
-    if (error) {
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 500 }
-      );
-    }
+    // Sign out from Supabase
+    await supabase.auth.signOut();
 
     return NextResponse.json({
       success: true,
       message: "Logged out successfully",
     });
-  } catch (error) {
-    return handleApiError(error, "Logout");
+  } catch (error: any) {
+    console.error("Logout error:", error);
+    return NextResponse.json(
+      { success: false, error: error.message },
+      { status: 500 }
+    );
   }
 }
