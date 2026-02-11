@@ -95,8 +95,15 @@ export async function POST(request: NextRequest) {
     const success = await writeSettings(newSettings);
 
     if (success) {
-      await logAdminAction(admin, "update", "settings", "platform", {
-        changes: Object.keys(newSettings).length + " settings updated",
+      await logAdminAction({
+        adminId: admin.id,
+        adminEmail: admin.email!,
+        action: "update",
+        targetType: "settings",
+        targetId: "platform",
+        details: {
+          changes: Object.keys(newSettings).length + " settings updated",
+        },
       });
     }
 

@@ -185,7 +185,7 @@ export default function PlansPage() {
                   {currentPlan}
                 </p>
                 {currentPlan !== "free" && userData.planExpiresAt && (
-                  <Badge variant={isExpired ? "destructive" : "default"}>
+                  <Badge variant={isExpired ? "error" : "default"}>
                     {isExpired
                       ? "Expired"
                       : `Renews ${new Date(userData.planExpiresAt).toLocaleDateString()}`}
@@ -223,14 +223,14 @@ export default function PlansPage() {
             <Card
               key={planKey}
               className={`relative transition-all duration-300 ${
-                plan.popular
+                (plan as any).popular
                   ? "ring-2 ring-amber-500/50 shadow-xl shadow-amber-500/10"
                   : isCurrent
                   ? "ring-2 ring-emerald-500/50"
                   : ""
               }`}
             >
-              {plan.popular && (
+              {(plan as any).popular && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                   <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-lg">
                     Most Popular
@@ -243,7 +243,7 @@ export default function PlansPage() {
                 <div className="text-center mb-6">
                   <div
                     className={`w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center ${
-                      plan.popular
+                      (plan as any).popular
                         ? "bg-gradient-to-br from-amber-500/20 to-orange-500/20"
                         : planKey === "scale"
                         ? "bg-gradient-to-br from-purple-500/20 to-pink-500/20"
@@ -252,7 +252,7 @@ export default function PlansPage() {
                   >
                     <Icon
                       className={`h-7 w-7 ${
-                        plan.popular
+                        (plan as any).popular
                           ? "text-amber-400"
                           : planKey === "scale"
                           ? "text-purple-400"
@@ -293,7 +293,7 @@ export default function PlansPage() {
                     disabled={!!upgrading}
                     loading={upgrading === planKey}
                     className={`w-full mb-6 ${
-                      plan.popular
+                      (plan as any).popular
                         ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-lg shadow-amber-500/25"
                         : ""
                     }`}
@@ -321,7 +321,7 @@ export default function PlansPage() {
                     <div key={i} className="flex items-start gap-3">
                       <Check
                         className={`h-5 w-5 flex-shrink-0 mt-0.5 ${
-                          plan.popular
+                          (plan as any).popular
                             ? "text-amber-400"
                             : planKey === "scale"
                             ? "text-purple-400"

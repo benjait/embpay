@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
+import { stripe } from "@/lib/stripe";
 import prisma from "@/lib/prisma";
 import { logAdminAction } from "@/lib/admin";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-11-20.acacia",
-});
 
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET!;
 
@@ -96,7 +93,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Update plan expiry based on current_period_end
-        const planExpiresAt = new Date(subscription.current_period_end * 1000);
+        const planExpiresAt = new Date((subscription as any).current_period_end * 1000);
 
         await prisma.user.update({
           where: { id: userId },
@@ -158,7 +155,7 @@ export async function POST(request: NextRequest) {
 
       case "invoice.payment_failed": {
         const invoice = event.data.object as Stripe.Invoice;
-        const subscription = invoice.subscription;
+        const subscription = (invoice as any).subscription;
 
         if (typeof subscription === "string") {
           // Fetch subscription to get metadata
