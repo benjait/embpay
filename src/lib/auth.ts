@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase-server";
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import prisma from "@/lib/prisma";
 
 const JWT_SECRET: string = process.env.NEXTAUTH_SECRET || "embpay-dev-secret-change-in-production";
@@ -17,9 +17,27 @@ export function verifyToken(token: string): { userId: string } | null {
   return null;
 }
 
-// Main auth function - reads session from Supabase cookies
+// Main auth function - reads session from Supabase cookies in API routes
 export async function getAuthUser(request: NextRequest) {
-  const supabase = await createClient();
+  // Create Supabase client for API routes (reads from NextRequest cookies)
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          // API routes can't set cookies, ignore
+        },
+        remove(name: string, options: CookieOptions) {
+          // API routes can't remove cookies, ignore
+        },
+      },
+    }
+  );
+
   const { data: { user }, error } = await supabase.auth.getUser();
   
   if (error || !user) {

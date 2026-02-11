@@ -38,13 +38,14 @@ export default function LoginPage() {
 
       if (authError) {
         setError("Invalid email or password");
-      } else if (data.user) {
-        // Supabase automatically handles cookies
+        setLoading(false);
+      } else if (data.user && data.session) {
+        // Wait a moment for cookies to be set, then redirect
+        await new Promise(resolve => setTimeout(resolve, 500));
         window.location.href = "/dashboard";
       }
     } catch {
       setError("Something went wrong. Please try again.");
-    } finally {
       setLoading(false);
     }
   };
