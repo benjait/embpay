@@ -18,8 +18,29 @@ export const STRIPE_PUBLISHABLE_KEY =
   process.env.STRIPE_PUBLISHABLE_KEY || "";
 
 /**
- * Create a Stripe Connect account (Standard type)
+ * Generate Stripe Connect OAuth link (Standard type)
+ * Allows merchant to connect existing account OR create new one
  * Merchant keeps 100% of payments (Stripe fees only: 2.9% + 30¢)
+ */
+export function getConnectOAuthUrl(userId: string, email: string): string {
+  const clientId = process.env.STRIPE_CONNECT_CLIENT_ID || "";
+  
+  const params = new URLSearchParams({
+    client_id: clientId,
+    state: JSON.stringify({ userId, email }),
+    scope: "read_write",
+    redirect_uri: `${PLATFORM_URL}/api/stripe/callback`,
+    "stripe_user[email]": email,
+    "stripe_user[business_type]": "individual",
+  });
+
+  return `https://connect.stripe.com/oauth/authorize?${params.toString()}`;
+}
+
+/**
+ * Legacy: Create a Standard connected account directly (for migration)
+ * Merchant keeps 100% of payments (Stripe fees only: 2.9% + 30¢)
+ * @deprecated Use getConnectOAuthUrl() instead for better UX
  */
 export async function createConnectAccount(
   userId: string,

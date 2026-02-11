@@ -1,10 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { checkAccountStatus, PLATFORM_URL } from "@/lib/stripe";
+import { checkAccountStatus, stripe, PLATFORM_URL } from "@/lib/stripe";
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
+    
+    // Check if this is OAuth callback (has 'code' parameter)
+    const oauthCode = searchParams.get("code");
+    const stateParam = searchParams.get("state");
+    
+    if (oauthCode && stateParam) {
+      // OAuth flow
+      const state = JSON.parse(stateParam);
+      const { userId, email } = state;
+      
+      // Exchange authorization code for access token
+      const response = await stripe.oauth.token({
+        grant_type: "authorization_code",
+        code: oauthCode,
+      });
+      
+      const accountId = response.stripe_user_id;
+      
+      // Save connected account
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          stripeAccountId: accountId,
+          stripeConnected: true,
+        },
+      });
+      
+      return NextResponse.redirect(
+        `${PLATFORM_URL}/dashboard/settings?success=stripe_connected`
+      );
+    }
+    
+    // Legacy account link flow (fallback)
     const accountId = searchParams.get("account_id");
     const userId = searchParams.get("user_id");
 
