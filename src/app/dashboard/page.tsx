@@ -55,17 +55,45 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
 
+  const [error, setError] = useState<string | null>(null);
+
   const fetchStats = useCallback(async () => {
     try {
+      console.log("Fetching dashboard stats...");
+      setError(null);
+      
+      // Add timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
       const res = await fetch("/api/dashboard/stats", {
-        credentials: 'include'
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+        },
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
+      console.log("Response status:", res.status);
+      
       const data = await res.json();
+      console.log("Response data:", data);
+      
       if (data.success) {
         setStats(data.data);
+      } else {
+        console.error("API returned error:", data.error);
+        setError(data.error || "Unknown error");
+        // If unauthorized, redirect to login
+        if (res.status === 401) {
+          window.location.href = "/auth/login";
+          return;
+        }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to fetch dashboard stats:", err);
+      setError(err.message || "Network error");
     } finally {
       setLoading(false);
       setTimeout(() => setMounted(true), 50);
@@ -116,8 +144,11 @@ export default function DashboardPage() {
             </Card>
           ))}
         </div>
-        <div className="flex items-center justify-center py-20">
+        <div className="flex flex-col items-center justify-center py-20">
           <Loader2 className="h-6 w-6 text-indigo-400 animate-spin" />
+          {error && (
+            <p className="mt-4 text-sm text-red-400">Error: {error}</p>
+          )}
         </div>
       </div>
     );
