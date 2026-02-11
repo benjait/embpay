@@ -2,17 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { getAuthUser } from "@/lib/auth";
 
-// Initialize Prisma Client
 const prisma = new PrismaClient({
   datasourceUrl: process.env.DATABASE_URL,
 });
 
 export async function GET(request: NextRequest) {
-  console.log("Dashboard stats API called");
+  console.log("[Dashboard API] Called at:", new Date().toISOString());
   
   try {
     const user = await getAuthUser(request);
-    console.log("Auth user:", user?.id || "null");
+    console.log("[Dashboard API] User:", user?.id || "null");
     
     if (!user) {
       return NextResponse.json(
@@ -26,153 +25,123 @@ export async function GET(request: NextRequest) {
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
 
-    // Initialize all variables with defaults
-    let totalProducts = 0;
-    let totalOrders = 0;
-    let completedOrders = 0;
-    let completedOrdersPrevMonth = 0;
-    let allCompletedOrders: any[] = [];
-    let recentOrders: any[] = [];
-    let last7DaysOrders: any[] = [];
+    // Run queries in parallel with timeout
+    const timeoutMs = 8000; // 8 second timeout per query
+    
+    const runWithTimeout = async (promise: Promise<any>, name: string) => {
+      try {
+        const result = await Promise.race([
+          promise,
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error(`${name} timeout`)), timeoutMs)
+          )
+        ]);
+        console.log(`[Dashboard API] ${name} success`);
+        return result;
+      } catch (e: any) {
+        console.error(`[Dashboard API] ${name} error:`, e.message);
+        return null;
+      }
+    };
 
-    // Query 1: Total products
-    try {
-      totalProducts = await prisma.product.count({
-        where: { userId: user.id },
-      });
-      console.log("Products count:", totalProducts);
-    } catch (e: any) {
-      console.error("Products query error:", e.message);
-    }
+    // Run all queries in parallel
+    const [
+      totalProducts,
+      totalOrders,
+      completedOrders,
+      completedOrdersPrevMonth,
+      allCompletedOrders,
+      recentOrders,
+      last7DaysOrders,
+    ] = await Promise.all([
+      runWithTimeout(
+        prisma.product.count({ where: { userId: user.id } }),
+        "products count"
+      ),
+      runWithTimeout(
+        prisma.order.count({ where: { userId: user.id } }),
+        "orders count"
+      ),
+      runWithTimeout(
+        prisma.order.count({
+          where: { userId: user.id, status: "completed", createdAt: { gte: thirtyDaysAgo } },
+        }),
+        "completed orders"
+      ),
+      runWithTimeout(
+        prisma.order.count({
+          where: { userId: user.id, status: "completed", createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } },
+        }),
+        "prev month orders"
+      ),
+      runWithTimeout(
+        prisma.order.findMany({
+          where: { userId: user.id, status: "completed" },
+          select: { amount: true, createdAt: true },
+        }),
+        "all completed orders"
+      ),
+      runWithTimeout(
+        prisma.order.findMany({
+          where: { userId: user.id },
+          orderBy: { createdAt: "desc" },
+          take: 10,
+          include: { product: { select: { name: true } } },
+        }),
+        "recent orders"
+      ),
+      runWithTimeout(
+        prisma.order.findMany({
+          where: { userId: user.id, status: "completed", createdAt: { gte: sevenDaysAgo } },
+          select: { amount: true, createdAt: true },
+        }),
+        "last 7 days orders"
+      ),
+    ]);
 
-    // Query 2: Total orders
-    try {
-      totalOrders = await prisma.order.count({
-        where: { userId: user.id },
-      });
-      console.log("Orders count:", totalOrders);
-    } catch (e: any) {
-      console.error("Orders query error:", e.message);
-    }
+    // Use defaults if queries failed
+    const safeProducts = totalProducts ?? 0;
+    const safeOrders = totalOrders ?? 0;
+    const safeCompleted = completedOrders ?? 0;
+    const safeCompletedPrev = completedOrdersPrevMonth ?? 0;
+    const safeAllCompleted = allCompletedOrders ?? [];
+    const safeRecent = recentOrders ?? [];
+    const safeLast7 = last7DaysOrders ?? [];
 
-    // Query 3: Completed orders this month
-    try {
-      completedOrders = await prisma.order.count({
-        where: {
-          userId: user.id,
-          status: "completed",
-          createdAt: { gte: thirtyDaysAgo },
-        },
-      });
-    } catch (e: any) {
-      console.error("Completed orders error:", e.message);
-    }
-
-    // Query 4: Completed orders prev month
-    try {
-      completedOrdersPrevMonth = await prisma.order.count({
-        where: {
-          userId: user.id,
-          status: "completed",
-          createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo },
-        },
-      });
-    } catch (e: any) {
-      console.error("Prev month orders error:", e.message);
-    }
-
-    // Query 5: All completed orders for revenue
-    try {
-      allCompletedOrders = await prisma.order.findMany({
-        where: {
-          userId: user.id,
-          status: "completed",
-        },
-        select: { 
-          amount: true, 
-          createdAt: true 
-        },
-      });
-      console.log("Completed orders fetched:", allCompletedOrders.length);
-    } catch (e: any) {
-      console.error("All completed orders error:", e.message);
-    }
-
-    // Query 6: Recent orders
-    try {
-      recentOrders = await prisma.order.findMany({
-        where: { userId: user.id },
-        orderBy: { createdAt: "desc" },
-        take: 10,
-        include: {
-          product: {
-            select: { name: true },
-          },
-        },
-      });
-      console.log("Recent orders fetched:", recentOrders.length);
-    } catch (e: any) {
-      console.error("Recent orders error:", e.message);
-    }
-
-    // Query 7: Last 7 days orders
-    try {
-      last7DaysOrders = await prisma.order.findMany({
-        where: {
-          userId: user.id,
-          status: "completed",
-          createdAt: { gte: sevenDaysAgo },
-        },
-        select: { 
-          amount: true, 
-          createdAt: true 
-        },
-      });
-    } catch (e: any) {
-      console.error("Last 7 days orders error:", e.message);
-    }
+    console.log("[Dashboard API] Queries completed:", {
+      products: safeProducts,
+      orders: safeOrders,
+      completed: safeCompleted,
+    });
 
     // Calculate metrics
-    const totalRevenue = allCompletedOrders.reduce(
-      (sum, o) => sum + (o?.amount || 0),
-      0
-    );
+    const totalRevenue = safeAllCompleted.reduce((sum: number, o: any) => sum + (o?.amount || 0), 0);
+    const revenueThisMonth = safeAllCompleted
+      .filter((o: any) => o?.createdAt >= thirtyDaysAgo)
+      .reduce((sum: number, o: any) => sum + (o?.amount || 0), 0);
+    const revenuePrevMonth = safeAllCompleted
+      .filter((o: any) => o?.createdAt >= sixtyDaysAgo && o?.createdAt < thirtyDaysAgo)
+      .reduce((sum: number, o: any) => sum + (o?.amount || 0), 0);
 
-    const revenueThisMonth = allCompletedOrders
-      .filter((o) => o?.createdAt >= thirtyDaysAgo)
-      .reduce((sum, o) => sum + (o?.amount || 0), 0);
+    const revenueChange = revenuePrevMonth > 0
+      ? ((revenueThisMonth - revenuePrevMonth) / revenuePrevMonth) * 100
+      : revenueThisMonth > 0 ? 100 : 0;
 
-    const revenuePrevMonth = allCompletedOrders
-      .filter((o) => o?.createdAt >= sixtyDaysAgo && o?.createdAt < thirtyDaysAgo)
-      .reduce((sum, o) => sum + (o?.amount || 0), 0);
+    const ordersChange = safeCompletedPrev > 0
+      ? ((safeCompleted - safeCompletedPrev) / safeCompletedPrev) * 100
+      : safeCompleted > 0 ? 100 : 0;
 
-    const revenueChange =
-      revenuePrevMonth > 0
-        ? ((revenueThisMonth - revenuePrevMonth) / revenuePrevMonth) * 100
-        : revenueThisMonth > 0
-          ? 100
-          : 0;
-
-    const ordersChange =
-      completedOrdersPrevMonth > 0
-        ? ((completedOrders - completedOrdersPrevMonth) / completedOrdersPrevMonth) * 100
-        : completedOrders > 0
-          ? 100
-          : 0;
-
-    const conversionRate = totalOrders > 0 ? (allCompletedOrders.length / totalOrders) * 100 : 0;
+    const conversionRate = safeOrders > 0 ? (safeAllCompleted.length / safeOrders) * 100 : 0;
 
     // Build chart data
-    const chartData: { date: string; label: string; revenue: number }[] = [];
+    const chartData = [];
     for (let i = 6; i >= 0; i--) {
       const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
       const dateStr = date.toISOString().split("T")[0];
       const dayLabel = date.toLocaleDateString("en-US", { weekday: "short" });
-
-      const dayRevenue = last7DaysOrders
-        .filter((o) => o?.createdAt?.toISOString().split("T")[0] === dateStr)
-        .reduce((sum, o) => sum + (o?.amount || 0), 0);
-
+      const dayRevenue = safeLast7
+        .filter((o: any) => o?.createdAt?.toISOString().split("T")[0] === dateStr)
+        .reduce((sum: number, o: any) => sum + (o?.amount || 0), 0);
       chartData.push({ date: dateStr, label: dayLabel, revenue: dayRevenue });
     }
 
@@ -180,35 +149,34 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         totalRevenue,
-        totalOrders,
-        totalProducts,
+        totalOrders: safeOrders,
+        totalProducts: safeProducts,
         conversionRate: Math.round(conversionRate * 100) / 100,
         revenueChange: Math.round(revenueChange * 10) / 10,
         ordersChange: Math.round(ordersChange * 10) / 10,
-        recentOrders: recentOrders.map((o) => ({
-          id: o.id,
-          customerEmail: o.customerEmail || "",
-          customerName: o.customerName || null,
-          productName: o.product?.name || "Unknown",
-          amount: o.amount || 0,
-          status: o.status || "pending",
-          createdAt: o.createdAt?.toISOString() || new Date().toISOString(),
+        recentOrders: safeRecent.map((o: any) => ({
+          id: o?.id || "",
+          customerEmail: o?.customerEmail || "",
+          customerName: o?.customerName || null,
+          productName: o?.product?.name || "Unknown",
+          amount: o?.amount || 0,
+          status: o?.status || "pending",
+          createdAt: o?.createdAt?.toISOString() || new Date().toISOString(),
         })),
         chartData,
       },
     };
     
-    console.log("Dashboard response ready:", JSON.stringify(response.data, null, 2));
+    console.log("[Dashboard API] Response ready, totalRevenue:", totalRevenue);
     return NextResponse.json(response);
     
   } catch (error: any) {
-    console.error("Dashboard stats critical error:", error);
+    console.error("[Dashboard API] Critical error:", error);
     return NextResponse.json(
       { 
         success: false, 
-        error: "Dashboard error occurred",
+        error: "Dashboard error",
         message: error.message,
-        stack: process.env.NODE_ENV === "development" ? error.stack : undefined
       },
       { status: 500 }
     );

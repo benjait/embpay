@@ -59,12 +59,15 @@ export default function DashboardPage() {
 
   const fetchStats = useCallback(async () => {
     try {
-      console.log("Fetching dashboard stats...");
+      console.log("[Dashboard] Fetching stats...");
       setError(null);
       
-      // Add timeout
+      // Add timeout - 15 seconds max
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => {
+        console.log("[Dashboard] Request timeout!");
+        controller.abort();
+      }, 15000);
       
       const res = await fetch("/api/dashboard/stats", {
         credentials: 'include',
@@ -75,25 +78,29 @@ export default function DashboardPage() {
       });
       
       clearTimeout(timeoutId);
-      console.log("Response status:", res.status);
+      console.log("[Dashboard] Response status:", res.status);
+      
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
       
       const data = await res.json();
-      console.log("Response data:", data);
+      console.log("[Dashboard] Response data:", data);
       
       if (data.success) {
         setStats(data.data);
+        console.log("[Dashboard] Stats loaded successfully");
       } else {
-        console.error("API returned error:", data.error);
-        setError(data.error || "Unknown error");
-        // If unauthorized, redirect to login
+        console.error("[Dashboard] API error:", data.error);
+        setError(data.error || "API error");
         if (res.status === 401) {
           window.location.href = "/auth/login";
           return;
         }
       }
     } catch (err: any) {
-      console.error("Failed to fetch dashboard stats:", err);
-      setError(err.message || "Network error");
+      console.error("[Dashboard] Fetch error:", err);
+      setError(err.name === 'AbortError' ? 'Request timeout (15s)' : err.message);
     } finally {
       setLoading(false);
       setTimeout(() => setMounted(true), 50);
