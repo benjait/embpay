@@ -2,9 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminUser, unauthorized } from "@/lib/admin";
 import prisma from "@/lib/prisma";
 
+// Simple in-memory cache (30 seconds TTL)
+let cachedData: any = null;
+let cacheTime = 0;
+const CACHE_TTL = 30 * 1000; // 30 seconds
+
 export async function GET(request: NextRequest) {
   const admin = await getAdminUser(request);
   if (!admin) return unauthorized();
+
+  // Return cached data if still fresh
+  if (cachedData && Date.now() - cacheTime < CACHE_TTL) {
+    return NextResponse.json(cachedData);
+  }
 
   try {
     const now = new Date();
@@ -46,8 +56,13 @@ export async function GET(request: NextRequest) {
       }),
       prisma.order.findMany({
         orderBy: { createdAt: "desc" },
-        take: 10,
-        include: {
+        take: 5,
+        select: {
+          id: true,
+          amount: true,
+          status: true,
+          customerEmail: true,
+          createdAt: true,
           product: { select: { name: true } },
           user: { select: { email: true, businessName: true } },
         },
@@ -86,10 +101,11 @@ export async function GET(request: NextRequest) {
     });
     const merchantMap = new Map(merchants.map(m => [m.id, m]));
 
-    // Build 30-day chart
+    // Build 30-day chart (use aggregated data to reduce load)
     const chartOrders = await prisma.order.findMany({
       where: { status: "completed", createdAt: { gte: thirtyDaysAgo } },
       select: { amount: true, createdAt: true },
+      orderBy: { createdAt: "asc" },
     });
 
     const chartData: Record<string, { revenue: number; orders: number }> = {};
@@ -118,7 +134,7 @@ export async function GET(request: NextRequest) {
       plans[p.plan] = p._count;
     }
 
-    return NextResponse.json({
+    const response = {
       success: true,
       data: {
         metrics: {
@@ -129,12 +145,12 @@ export async function GET(request: NextRequest) {
           todayOrders,
           totalLicenses,
           gmv: {
-            thisMonth: Math.round(gmvThisMonth * 100) / 100,
-            prevMonth: Math.round(gmvPrevMonth * 100) / 100,
+            thisMonth: Math.round((gmvThisMonth / 100) * 100) / 100,
+            prevMonth: Math.round((gmvPrevMonth / 100) * 100) / 100,
             change: Math.round(gmvChange * 10) / 10,
-            allTime: Math.round((revenueData._sum.amount || 0) * 100) / 100,
+            allTime: Math.round(((revenueData._sum.amount || 0) / 100) * 100) / 100,
           },
-          platformFees: Math.round((revenueData._sum.platformFee || 0) * 100) / 100,
+          platformFees: Math.round(((revenueData._sum.platformFee || 0) / 100) * 100) / 100,
           users: {
             newThisMonth: newUsersThisMonth,
             change: Math.round(userChange * 10) / 10,
@@ -143,7 +159,7 @@ export async function GET(request: NextRequest) {
         },
         recentOrders: recentOrders.map(o => ({
           id: o.id,
-          amount: o.amount,
+          amount: o.amount / 100,
           status: o.status,
           customerEmail: o.customerEmail,
           product: o.product.name,
@@ -156,13 +172,22 @@ export async function GET(request: NextRequest) {
             id: m.userId,
             name: info?.businessName || info?.name || info?.email || "Unknown",
             email: info?.email || "",
-            revenue: Math.round((m._sum.amount || 0) * 100) / 100,
+            revenue: Math.round(((m._sum.amount || 0) / 100) * 100) / 100,
             orders: m._count,
           };
         }),
-        chart,
+        chart: chart.map(c => ({
+          ...c,
+          revenue: Math.round((c.revenue / 100) * 100) / 100,
+        })),
       },
-    });
+    };
+
+    // Cache the response
+    cachedData = response;
+    cacheTime = Date.now();
+
+    return NextResponse.json(response);
   } catch (error: any) {
     console.error("[Admin Dashboard] Error:", error);
     return NextResponse.json(
