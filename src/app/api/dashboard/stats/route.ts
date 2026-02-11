@@ -2,22 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { getAuthUser } from "@/lib/auth";
 
-// Create Prisma client with error handling
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
-
-const prisma = globalForPrisma.prisma || new PrismaClient({
+// Initialize Prisma Client
+const prisma = new PrismaClient({
   datasourceUrl: process.env.DATABASE_URL,
-  log: process.env.NODE_ENV === "development" ? ["query", "error"] : ["error"],
 });
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
-
 export async function GET(request: NextRequest) {
+  console.log("Dashboard stats API called");
+  
   try {
-    // Test database connection first
-    await prisma.$connect();
-    
     const user = await getAuthUser(request);
+    console.log("Auth user:", user?.id || "null");
+    
     if (!user) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
@@ -30,7 +26,7 @@ export async function GET(request: NextRequest) {
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
 
-    // Run queries with individual error handling
+    // Initialize all variables with defaults
     let totalProducts = 0;
     let totalOrders = 0;
     let completedOrders = 0;
@@ -39,22 +35,27 @@ export async function GET(request: NextRequest) {
     let recentOrders: any[] = [];
     let last7DaysOrders: any[] = [];
 
+    // Query 1: Total products
     try {
       totalProducts = await prisma.product.count({
         where: { userId: user.id },
       });
-    } catch (e) {
-      console.error("Error counting products:", e);
+      console.log("Products count:", totalProducts);
+    } catch (e: any) {
+      console.error("Products query error:", e.message);
     }
 
+    // Query 2: Total orders
     try {
       totalOrders = await prisma.order.count({
         where: { userId: user.id },
       });
-    } catch (e) {
-      console.error("Error counting orders:", e);
+      console.log("Orders count:", totalOrders);
+    } catch (e: any) {
+      console.error("Orders query error:", e.message);
     }
 
+    // Query 3: Completed orders this month
     try {
       completedOrders = await prisma.order.count({
         where: {
@@ -63,10 +64,11 @@ export async function GET(request: NextRequest) {
           createdAt: { gte: thirtyDaysAgo },
         },
       });
-    } catch (e) {
-      console.error("Error counting completed orders:", e);
+    } catch (e: any) {
+      console.error("Completed orders error:", e.message);
     }
 
+    // Query 4: Completed orders prev month
     try {
       completedOrdersPrevMonth = await prisma.order.count({
         where: {
@@ -75,22 +77,28 @@ export async function GET(request: NextRequest) {
           createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo },
         },
       });
-    } catch (e) {
-      console.error("Error counting prev month orders:", e);
+    } catch (e: any) {
+      console.error("Prev month orders error:", e.message);
     }
 
+    // Query 5: All completed orders for revenue
     try {
       allCompletedOrders = await prisma.order.findMany({
         where: {
           userId: user.id,
           status: "completed",
         },
-        select: { amount: true, createdAt: true },
+        select: { 
+          amount: true, 
+          createdAt: true 
+        },
       });
-    } catch (e) {
-      console.error("Error fetching completed orders:", e);
+      console.log("Completed orders fetched:", allCompletedOrders.length);
+    } catch (e: any) {
+      console.error("All completed orders error:", e.message);
     }
 
+    // Query 6: Recent orders
     try {
       recentOrders = await prisma.order.findMany({
         where: { userId: user.id },
@@ -102,10 +110,12 @@ export async function GET(request: NextRequest) {
           },
         },
       });
-    } catch (e) {
-      console.error("Error fetching recent orders:", e);
+      console.log("Recent orders fetched:", recentOrders.length);
+    } catch (e: any) {
+      console.error("Recent orders error:", e.message);
     }
 
+    // Query 7: Last 7 days orders
     try {
       last7DaysOrders = await prisma.order.findMany({
         where: {
@@ -113,25 +123,28 @@ export async function GET(request: NextRequest) {
           status: "completed",
           createdAt: { gte: sevenDaysAgo },
         },
-        select: { amount: true, createdAt: true },
+        select: { 
+          amount: true, 
+          createdAt: true 
+        },
       });
-    } catch (e) {
-      console.error("Error fetching last 7 days orders:", e);
+    } catch (e: any) {
+      console.error("Last 7 days orders error:", e.message);
     }
 
     // Calculate metrics
     const totalRevenue = allCompletedOrders.reduce(
-      (sum, o) => sum + (o.amount || 0),
+      (sum, o) => sum + (o?.amount || 0),
       0
     );
 
     const revenueThisMonth = allCompletedOrders
-      .filter((o) => o.createdAt >= thirtyDaysAgo)
-      .reduce((sum, o) => sum + (o.amount || 0), 0);
+      .filter((o) => o?.createdAt >= thirtyDaysAgo)
+      .reduce((sum, o) => sum + (o?.amount || 0), 0);
 
     const revenuePrevMonth = allCompletedOrders
-      .filter((o) => o.createdAt >= sixtyDaysAgo && o.createdAt < thirtyDaysAgo)
-      .reduce((sum, o) => sum + (o.amount || 0), 0);
+      .filter((o) => o?.createdAt >= sixtyDaysAgo && o?.createdAt < thirtyDaysAgo)
+      .reduce((sum, o) => sum + (o?.amount || 0), 0);
 
     const revenueChange =
       revenuePrevMonth > 0
@@ -157,13 +170,13 @@ export async function GET(request: NextRequest) {
       const dayLabel = date.toLocaleDateString("en-US", { weekday: "short" });
 
       const dayRevenue = last7DaysOrders
-        .filter((o) => o.createdAt.toISOString().split("T")[0] === dateStr)
-        .reduce((sum, o) => sum + (o.amount || 0), 0);
+        .filter((o) => o?.createdAt?.toISOString().split("T")[0] === dateStr)
+        .reduce((sum, o) => sum + (o?.amount || 0), 0);
 
       chartData.push({ date: dateStr, label: dayLabel, revenue: dayRevenue });
     }
 
-    return NextResponse.json({
+    const response = {
       success: true,
       data: {
         totalRevenue,
@@ -174,23 +187,28 @@ export async function GET(request: NextRequest) {
         ordersChange: Math.round(ordersChange * 10) / 10,
         recentOrders: recentOrders.map((o) => ({
           id: o.id,
-          customerEmail: o.customerEmail,
-          customerName: o.customerName,
+          customerEmail: o.customerEmail || "",
+          customerName: o.customerName || null,
           productName: o.product?.name || "Unknown",
-          amount: o.amount,
-          status: o.status,
-          createdAt: o.createdAt.toISOString(),
+          amount: o.amount || 0,
+          status: o.status || "pending",
+          createdAt: o.createdAt?.toISOString() || new Date().toISOString(),
         })),
         chartData,
       },
-    });
+    };
+    
+    console.log("Dashboard response ready");
+    return NextResponse.json(response);
+    
   } catch (error: any) {
-    console.error("Dashboard stats error:", error);
+    console.error("Dashboard stats critical error:", error);
     return NextResponse.json(
       { 
         success: false, 
-        error: "Database error occurred",
-        details: process.env.NODE_ENV === "development" ? error.message : undefined
+        error: "Dashboard error occurred",
+        message: error.message,
+        stack: process.env.NODE_ENV === "development" ? error.stack : undefined
       },
       { status: 500 }
     );
