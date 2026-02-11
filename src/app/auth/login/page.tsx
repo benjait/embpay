@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase-client";
 import {
   Eye,
   EyeOff,
@@ -28,22 +29,18 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, rememberMe }),
+      const supabase = createClient();
+      
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email: email.toLowerCase().trim(),
+        password,
       });
 
-      const data = await res.json();
-      if (data.success) {
-        // Store JWT in cookie - token is in data.data.session.access_token
-        const token = data.data?.session?.access_token;
-        if (token) {
-          document.cookie = `token=${token}; path=/; max-age=${rememberMe ? 2592000 : 86400}; SameSite=Lax; Secure`;
-        }
+      if (authError) {
+        setError("Invalid email or password");
+      } else if (data.user) {
+        // Supabase automatically handles cookies
         window.location.href = "/dashboard";
-      } else {
-        setError(data.error || "Invalid email or password");
       }
     } catch {
       setError("Something went wrong. Please try again.");

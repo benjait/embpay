@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase-client";
 import {
   Eye,
   EyeOff,
@@ -41,30 +42,39 @@ export default function RegisterPage() {
     e.preventDefault();
     setError("");
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters");
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters");
       return;
     }
 
     setLoading(true);
 
     try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+      const supabase = createClient();
+      
+      const { data, error: authError } = await supabase.auth.signUp({
+        email: email.toLowerCase().trim(),
+        password,
+        options: {
+          data: {
+            name: name.trim() || null,
+            businessName: null,
+            stripeConnected: false,
+            stripeAccountId: null,
+            commissionRate: 0.03,
+          },
+        },
       });
 
-      const data = await res.json();
-      if (data.success) {
-        // Store JWT in cookie - token is in data.data.session.access_token
-        const token = data.data?.session?.access_token;
-        if (token) {
-          document.cookie = `token=${token}; path=/; max-age=86400; SameSite=Lax; Secure`;
+      if (authError) {
+        if (authError.message.includes("already registered")) {
+          setError("An account with this email already exists");
+        } else {
+          setError(authError.message || "Registration failed");
         }
+      } else if (data.user) {
+        // Supabase automatically handles cookies
         window.location.href = "/dashboard";
-      } else {
-        setError(data.error || "Registration failed");
       }
     } catch {
       setError("Something went wrong. Please try again.");
