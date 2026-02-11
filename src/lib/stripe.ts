@@ -34,7 +34,7 @@ export function getConnectOAuthUrl(userId: string, email: string): string {
     "stripe_user[business_type]": "individual",
   });
 
-  return `https://connect.stripe.com/oauth/authorize?${params.toString()}`;
+  return `https://connect.stripe.com/oauth/v2/authorize?${params.toString()}`;
 }
 
 /**
