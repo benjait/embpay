@@ -91,40 +91,25 @@ export default function HomePage() {
               <span className="text-xs text-neutral-500 ml-2 font-mono">sdk.js</span>
             </div>
             <div className="p-6 overflow-x-auto">
-              <pre className="text-sm font-mono leading-relaxed">
-                <code>
-                  <span className="text-[#d73a49]">import</span> <span className="text-[#24292e]">{ EmbPay }</span> <span className="text-[#d73a49]">from</span> <span className="text-[#032f62]">'@embpay/sdk'</span>;
-                  {"\n"}
-                  {"\n"}
-                  <span className="text-[#d73a49]">const</span> <span className="text-[#24292e]">embpay</span> <span className="text-[#d73a49]">=</span> <span className="text-[#d73a49]">new</span> <span className="text-[#6f42c1]">EmbPay</span>({ <span className="text-[#e36209]">apiKey</span>: <span className="text-[#032f62]">process.env.EMBPAY_KEY</span> });
-                  {"\n"}
-                  {"\n"}
-                  <span className="text-[#6a737d]">// Create a product</span>
-                  {"\n"}
-                  <span className="text-[#d73a49]">const</span> <span className="text-[#24292e]">product</span> <span className="text-[#d73a49]">=</span> <span className="text-[#d73a49]">await</span> <span className="text-[#24292e]">embpay.products</span>.<span className="text-[#6f42c1]">create</span>({
-                  {"\n"}
-                  {"  "}<span className="text-[#24292e]">name</span>: <span className="text-[#032f62]">'My SaaS License'</span>,
-                  {"\n"}
-                  {"  "}<span className="text-[#24292e]">price</span>: <span className="text-[#005cc5]">4900</span>, <span className="text-[#6a737d]">// $49.00</span>
-                  {"\n"}
-                  {"  "}<span className="text-[#24292e]">type</span>: <span className="text-[#032f62]">'one_time_license'</span>,
-                  {"\n"}
-                  });
-                  {"\n"}
-                  {"\n"}
-                  <span className="text-[#6a737d]">// Create checkout</span>
-                  {"\n"}
-                  <span className="text-[#d73a49]">const</span> <span className="text-[#24292e]">checkout</span> <span className="text-[#d73a49]">=</span> <span className="text-[#d73a49]">await</span> <span className="text-[#24292e]">embpay.checkout</span>.<span className="text-[#6f42c1]">create</span>({
-                  {"\n"}
-                  {"  "}<span className="text-[#24292e]">productId</span>: <span className="text-[#24292e]">product.id</span>,
-                  {"\n"}
-                  {"  "}<span className="text-[#24292e]">successUrl</span>: <span className="text-[#032f62]">'https://yoursite.com/success'</span>,
-                  {"\n"}
-                  });
-                  {"\n"}
-                  {"\n"}
-                  <span className="text-[#24292e]">console</span>.<span className="text-[#6f42c1]">log</span>(<span className="text-[#24292e]">checkout.url</span>); <span className="text-[#6a737d]">// → Send to customer</span>
-                </code>
+              <pre className="text-sm font-mono leading-relaxed text-neutral-800">
+{`import { EmbPay } from '@embpay/sdk';
+
+const embpay = new EmbPay({ apiKey: process.env.EMBPAY_KEY });
+
+// Create a product
+const product = await embpay.products.create({
+  name: 'My SaaS License',
+  price: 4900, // $49.00
+  type: 'one_time_license',
+});
+
+// Create checkout
+const checkout = await embpay.checkout.create({
+  productId: product.id,
+  successUrl: 'https://yoursite.com/success',
+});
+
+console.log(checkout.url); // → Send to customer`}
               </pre>
             </div>
           </div>
