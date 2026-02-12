@@ -345,7 +345,10 @@ export default function NewProductPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => updateField("type", "subscription")}
+                      onClick={() => {
+                        updateField("type", "subscription");
+                        updateField("pricingType", "fixed"); // Force fixed price for subscriptions
+                      }}
                       className={`flex-1 px-4 py-2.5 text-sm font-medium transition-all ${
                         form.type === "subscription"
                           ? "bg-indigo-600 text-white"
@@ -357,53 +360,60 @@ export default function NewProductPage() {
                   </div>
                 </div>
 
-                {/* Pricing Type */}
-                <div className="pt-4 border-t border-white/[0.08]">
-                  <label className="block text-sm font-medium text-slate-300 mb-3">
-                    Pricing Model
-                  </label>
-                  <div className="grid grid-cols-2 gap-4">
-                    <button
-                      type="button"
-                      onClick={() => updateField("pricingType", "fixed")}
-                      className={`p-4 rounded-xl border text-left transition-all ${
-                        form.pricingType === "fixed"
-                          ? "border-indigo-500 bg-indigo-500/10"
-                          : "border-white/[0.08] hover:border-white/[0.15]"
-                      }`}
-                    >
-                      <div className="font-medium text-white mb-1">Fixed Price</div>
-                      <div className="text-sm text-slate-400">You set the price</div>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => updateField("pricingType", "pay_what_you_want")}
-                      className={`p-4 rounded-xl border text-left transition-all ${
-                        form.pricingType === "pay_what_you_want"
-                          ? "border-indigo-500 bg-indigo-500/10"
-                          : "border-white/[0.08] hover:border-white/[0.15]"
-                      }`}
-                    >
-                      <div className="font-medium text-white mb-1">Pay What You Want</div>
-                      <div className="text-sm text-slate-400">Customer chooses price</div>
-                    </button>
-                  </div>
-
-                  {form.pricingType === "pay_what_you_want" && (
-                    <div className="mt-4 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-                      <Input
-                        label="Minimum Price (Optional)"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        placeholder="0.00"
-                        value={form.minimumPrice}
-                        onChange={(e) => updateField("minimumPrice", e.target.value)}
-                        hint="Leave empty to allow any amount including free"
-                      />
+                {/* Pricing Type - Hidden for Subscriptions */}
+                {form.type === "one-time" ? (
+                  <div className="pt-4 border-t border-white/[0.08]">
+                    <label className="block text-sm font-medium text-slate-300 mb-3">
+                      Pricing Model
+                    </label>
+                    <div className="grid grid-cols-2 gap-4">
+                      <button
+                        type="button"
+                        onClick={() => updateField("pricingType", "fixed")}
+                        className={`p-4 rounded-xl border text-left transition-all ${
+                          form.pricingType === "fixed"
+                            ? "border-indigo-500 bg-indigo-500/10"
+                            : "border-white/[0.08] hover:border-white/[0.15]"
+                        }`}
+                      >
+                        <div className="font-medium text-white mb-1">Fixed Price</div>
+                        <div className="text-sm text-slate-400">You set the price</div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateField("pricingType", "pay_what_you_want")}
+                        className={`p-4 rounded-xl border text-left transition-all ${
+                          form.pricingType === "pay_what_you_want"
+                            ? "border-indigo-500 bg-indigo-500/10"
+                            : "border-white/[0.08] hover:border-white/[0.15]"
+                        }`}
+                      >
+                        <div className="font-medium text-white mb-1">Pay What You Want</div>
+                        <div className="text-sm text-slate-400">Customer chooses price</div>
+                      </button>
                     </div>
-                  )}
-                </div>
+
+                    {form.pricingType === "pay_what_you_want" && (
+                      <div className="mt-4 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                        <Input
+                          label="Minimum Price (Optional)"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          placeholder="0.00"
+                          value={form.minimumPrice}
+                          onChange={(e) => updateField("minimumPrice", e.target.value)}
+                        />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="pt-4 border-t border-white/[0.08] p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+                    <p className="text-sm text-blue-200">
+                      💡 Subscriptions use <strong>Fixed Price</strong> only. Customer will be charged this amount every billing period.
+                    </p>
+                  </div>
+                )}
 
                 {/* Price & Currency */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-white/[0.08]">
