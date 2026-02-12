@@ -56,6 +56,9 @@ export async function POST(request: NextRequest) {
       bumpProduct,
       bumpPrice,
     } = body;
+    
+    // Map bumpProduct to bumpProductId for schema compatibility
+    const bumpProductId = bumpProduct;
 
     // Validation
     if (!isValidString(name, { minLength: 1, maxLength: 500 })) {
@@ -132,7 +135,7 @@ export async function POST(request: NextRequest) {
         pricingType: pricingType || "fixed",
         minimumPrice: minimumPrice || null,
         bumpEnabled: bumpEnabled || false,
-        bumpProduct: bumpProduct ? sanitizeString(bumpProduct, 500) : null,
+        bumpProductId: bumpProduct ? sanitizeString(bumpProduct, 500) : null,
         bumpPrice: bumpPrice || null,
         userId: user.id,
       },

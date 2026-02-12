@@ -34,7 +34,7 @@ interface Product {
   pricingType: string;
   minimumPrice: number | null;
   bumpEnabled: boolean;
-  bumpProduct: string | null;
+  bumpProductId: string | null;
   bumpPrice: number | null;
   user: {
     businessName: string | null;
@@ -276,7 +276,7 @@ export default function PublicProductPage() {
                       </div>
                       <div className="flex-1">
                         <p className="font-bold text-gray-900 text-sm">
-                          🔥 {product.bumpProduct || "Exclusive Bonus"}
+                          🔥 {product.bumpProductId || "Exclusive Bonus"}
                         </p>
                         <p className="text-gray-500 text-xs mt-1">
                           Add for just {formatPrice(product.bumpPrice, product.currency)} — click to add

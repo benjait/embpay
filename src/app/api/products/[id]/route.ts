@@ -144,7 +144,7 @@ export async function PUT(
         }),
         ...(active !== undefined && { active }),
         ...(bumpEnabled !== undefined && { bumpEnabled }),
-        ...(bumpProduct !== undefined && { bumpProduct: bumpProduct ? sanitizeString(bumpProduct, 500) : null }),
+        ...(bumpProduct !== undefined && { bumpProductId: bumpProduct ? sanitizeString(bumpProduct, 500) : null }),
         ...(bumpPrice !== undefined && { bumpPrice }),
       },
     });

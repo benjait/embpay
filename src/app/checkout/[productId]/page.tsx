@@ -30,7 +30,7 @@ interface Product {
   pricingType: string;
   minimumPrice: number | null;
   bumpEnabled: boolean;
-  bumpProduct: string | null;
+  bumpProductId: string | null;
   bumpPrice: number | null;
   user: {
     businessName: string | null;
