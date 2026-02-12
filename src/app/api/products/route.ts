@@ -52,6 +52,21 @@ export async function POST(request: NextRequest) {
       deliveryInstructions,
       pricingType,
       minimumPrice,
+      // Trial
+      trialEnabled,
+      trialDays,
+      trialPrice,
+      // Quantity
+      quantityLimitEnabled,
+      quantityLimit,
+      // Geo
+      geoRestrictionEnabled,
+      allowedCountries,
+      // Email
+      customEmailEnabled,
+      customEmailSubject,
+      customEmailBody,
+      // Bump
       bumpEnabled,
       bumpProduct,
       bumpPrice,
@@ -132,8 +147,24 @@ export async function POST(request: NextRequest) {
         deliveryType: deliveryType || "none",
         deliveryUrl: deliveryUrl || null,
         deliveryInstructions: deliveryInstructions ? sanitizeString(deliveryInstructions, 5000) : null,
+        // Pricing
         pricingType: pricingType || "fixed",
         minimumPrice: minimumPrice || null,
+        // Trial
+        trialEnabled: trialEnabled || false,
+        trialDays: trialDays || null,
+        trialPrice: trialPrice || null,
+        // Quantity
+        quantityLimitEnabled: quantityLimitEnabled || false,
+        quantityLimit: quantityLimit || null,
+        // Geo
+        geoRestrictionEnabled: geoRestrictionEnabled || false,
+        allowedCountries: allowedCountries || null,
+        // Email
+        customEmailEnabled: customEmailEnabled || false,
+        customEmailSubject: customEmailSubject ? sanitizeString(customEmailSubject, 200) : null,
+        customEmailBody: customEmailBody ? sanitizeString(customEmailBody, 10000) : null,
+        // Bump
         bumpEnabled: bumpEnabled || false,
         bumpProductId: bumpProduct ? sanitizeString(bumpProduct, 500) : null,
         bumpPrice: bumpPrice || null,

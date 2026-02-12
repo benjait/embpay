@@ -58,6 +58,25 @@ model Product {
   pricingType          String   @default("fixed")
   minimumPrice         Float?   // For pay_what_you_want
   
+  // Trial period (for subscriptions)
+  trialEnabled         Boolean  @default(false)
+  trialDays            Int?     // 7, 14, 30 days
+  trialPrice           Float?   // $0 for free trial, or $1 for paid trial
+  
+  // Quantity limits (scarcity)
+  quantityLimitEnabled Boolean  @default(false)
+  quantityLimit        Int?     // Max number of sales
+  quantitySold         Int      @default(0)  // Track how many sold
+  
+  // Geographic restrictions
+  geoRestrictionEnabled Boolean @default(false)
+  allowedCountries     String?  // JSON array of country codes ["US", "CA", "GB"]
+  
+  // Custom purchase email
+  customEmailEnabled   Boolean  @default(false)
+  customEmailSubject   String?
+  customEmailBody      String?  // HTML content
+  
   // Order Bump
   bumpEnabled          Boolean  @default(false)
   bumpProductId        String?
