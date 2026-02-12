@@ -230,7 +230,7 @@ export default function PublicProductPage() {
                         step="0.01"
                         value={customPrice}
                         onChange={(e) => setCustomPrice(e.target.value)}
-                        placeholder={(product.minimumPrice || product.price) / 100}
+                        placeholder={String((product.minimumPrice || product.price) / 100)}
                         className="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-3xl font-bold w-32 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30"
                       />
                     </div>

@@ -278,7 +278,6 @@ export default function NewProductPage() {
                     value={form.minimumPrice}
                     onChange={(e) => updateField("minimumPrice", e.target.value)}
                     error={errors.minimumPrice}
-                    helperText="Minimum amount customer must pay"
                   />
                 </div>
               )}
