@@ -139,7 +139,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        totalRevenue,
+        totalRevenue: totalRevenue / 100,
         totalOrders,
         totalProducts,
         conversionRate: Math.round(conversionRate * 100) / 100,
@@ -150,11 +150,14 @@ export async function GET(request: NextRequest) {
           customerEmail: o?.customerEmail || "",
           customerName: o?.customerName || null,
           productName: o?.product?.name || "Unknown",
-          amount: o?.amount || 0,
+          amount: (o?.amount || 0) / 100,
           status: o?.status || "pending",
           createdAt: o?.createdAt?.toISOString() || new Date().toISOString(),
         })),
-        chartData,
+        chartData: chartData.map(d => ({
+          ...d,
+          revenue: d.revenue / 100,
+        })),
         // For plans page
         user: userData,
         products: totalProducts,

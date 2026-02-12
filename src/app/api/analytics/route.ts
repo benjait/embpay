@@ -117,14 +117,20 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        totalRevenue,
+        totalRevenue: totalRevenue / 100,
         totalOrders,
         revenueChange: Math.round(revenueChange * 10) / 10,
         ordersChange: Math.round(ordersChange * 10) / 10,
-        avgOrderValue: Math.round(avgOrderValue * 100) / 100,
+        avgOrderValue: Math.round((avgOrderValue / 100) * 100) / 100,
         conversionRate: Math.round(conversionRate * 10) / 10,
-        chartData,
-        topProducts,
+        chartData: chartData.map(d => ({
+          ...d,
+          revenue: d.revenue / 100,
+        })),
+        topProducts: topProducts.map(p => ({
+          ...p,
+          revenue: p.revenue / 100,
+        })),
         recentActivity: [], // TODO: implement activity log
       },
     });
