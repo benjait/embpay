@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { productId, customerEmail, customerName, couponCode, includeBump } = body;
+    const { productId, customerEmail, customerName, couponCode, includeBump, customPrice } = body;
 
     if (!productId || typeof productId !== "string") {
       return NextResponse.json(
@@ -58,7 +58,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let totalAmount = product.price;
+    let totalAmount = customPrice || product.price;
+    
+    // Validate custom price for Pay What You Want
+    if (customPrice && product.pricingType === "pay_what_you_want" && product.minimumPrice) {
+      if (customPrice < product.minimumPrice) {
+        return NextResponse.json(
+          { success: false, error: `Price must be at least ${product.minimumPrice}` },
+          { status: 400 }
+        );
+      }
+    }
+    
     let bumpAmount = 0;
 
     if (includeBump && product.bumpEnabled && product.bumpPrice) {
@@ -125,6 +136,7 @@ export async function POST(request: NextRequest) {
         productId: product.id,
         userId: product.user.id,
         includedBump: String(includeBump || false),
+        customPrice: customPrice ? String(customPrice) : undefined,
       },
     };
 

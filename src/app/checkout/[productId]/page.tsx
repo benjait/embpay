@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   Lock,
   Shield,
@@ -27,6 +27,8 @@ interface Product {
   imageUrl: string | null;
   type: string;
   deliveryUrl: string | null;
+  pricingType: string;
+  minimumPrice: number | null;
   bumpEnabled: boolean;
   bumpProduct: string | null;
   bumpPrice: number | null;
@@ -40,7 +42,12 @@ interface Product {
 export default function CheckoutPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const productId = params.productId as string;
+
+  // Query params
+  const customPriceParam = searchParams.get("price");
+  const bumpParam = searchParams.get("bump");
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -53,7 +60,7 @@ export default function CheckoutPage() {
   const [couponError, setCouponError] = useState("");
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [applyingCoupon, setApplyingCoupon] = useState(false);
-  const [includeBump, setIncludeBump] = useState(false);
+  const [includeBump, setIncludeBump] = useState(bumpParam === "true");
 
   // Stripe Elements state
   const [clientSecret, setClientSecret] = useState<string | null>(null);
@@ -84,7 +91,10 @@ export default function CheckoutPage() {
 
   const getSubtotal = () => {
     if (!product) return 0;
-    let total = product.price;
+    // Use custom price from URL for Pay What You Want
+    let total = customPriceParam 
+      ? parseInt(customPriceParam) 
+      : product.price;
     if (includeBump && product.bumpEnabled && product.bumpPrice) {
       total += product.bumpPrice;
     }
@@ -148,6 +158,7 @@ export default function CheckoutPage() {
           customerName,
           couponCode: couponApplied ? couponCode : undefined,
           includeBump,
+          customPrice: customPriceParam ? parseInt(customPriceParam) : undefined,
         }),
       });
 
