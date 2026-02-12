@@ -53,9 +53,15 @@ model Product {
   deliveryInstructions String?
   downloadUrl          String?
   active               Boolean  @default(true)
+  
+  // Pricing type: fixed | pay_what_you_want
+  pricingType          String   @default("fixed")
+  minimumPrice         Float?   // For pay_what_you_want
+  
+  // Order Bump
   bumpEnabled          Boolean  @default(false)
-  bumpProduct          String?
-  bumpPrice            Float?
+  bumpProductId        String?
+  bumpPrice            Float?   // Override price for bump (optional)
   
   // License config (for license products)
   licensePrefix       String?   // Custom prefix, default: EMBP

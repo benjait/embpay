@@ -15,6 +15,8 @@ interface ProductForm {
   price: string;
   currency: string;
   type: "one-time" | "subscription";
+  pricingType: "fixed" | "pay_what_you_want";
+  minimumPrice: string;
   imageUrl: string;
   deliveryUrl: string;
   orderBump: boolean;
@@ -28,6 +30,8 @@ const initialForm: ProductForm = {
   price: "",
   currency: "usd",
   type: "one-time",
+  pricingType: "fixed",
+  minimumPrice: "",
   imageUrl: "",
   deliveryUrl: "",
   orderBump: false,
@@ -71,8 +75,15 @@ export default function NewProductPage() {
     if (!form.name.trim()) newErrors.name = "Product name is required";
     if (!form.description.trim())
       newErrors.description = "Description is required";
-    if (!form.price || parseFloat(form.price) <= 0)
-      newErrors.price = "Price must be greater than 0";
+    
+    if (form.pricingType === "fixed") {
+      if (!form.price || parseFloat(form.price) <= 0)
+        newErrors.price = "Price must be greater than 0";
+    } else {
+      if (form.minimumPrice && parseFloat(form.minimumPrice) < 0)
+        newErrors.minimumPrice = "Minimum price cannot be negative";
+    }
+    
     if (form.orderBump && !form.bumpName.trim())
       newErrors.bumpName = "Bump product name is required";
     if (form.orderBump && (!form.bumpPrice || parseFloat(form.bumpPrice) <= 0))
@@ -94,9 +105,15 @@ export default function NewProductPage() {
         body: JSON.stringify({
           name: form.name,
           description: form.description,
-          price: Math.round(parseFloat(form.price) * 100),
+          price: form.pricingType === "fixed" 
+            ? Math.round(parseFloat(form.price) * 100) 
+            : Math.round(parseFloat(form.minimumPrice || "0") * 100),
           currency: form.currency,
           type: form.type === "one-time" ? "one_time" : "subscription",
+          pricingType: form.pricingType,
+          minimumPrice: form.pricingType === "pay_what_you_want" && form.minimumPrice
+            ? Math.round(parseFloat(form.minimumPrice) * 100)
+            : null,
           imageUrl: form.imageUrl || null,
           deliveryUrl: form.deliveryUrl || null,
           bumpEnabled: form.orderBump,
@@ -216,6 +233,55 @@ export default function NewProductPage() {
                   </button>
                 </div>
               </div>
+            </div>
+
+            {/* Pricing Type */}
+            <div className="pt-4 border-t border-white/[0.08]">
+              <label className="block text-sm font-medium text-slate-300 mb-3">
+                Pricing Type
+              </label>
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => updateField("pricingType", "fixed")}
+                  className={`p-4 rounded-xl border text-left transition-all ${
+                    form.pricingType === "fixed"
+                      ? "border-indigo-500 bg-indigo-500/10"
+                      : "border-white/[0.08] hover:border-white/[0.15]"
+                  }`}
+                >
+                  <div className="font-medium text-white mb-1">Fixed Price</div>
+                  <div className="text-sm text-slate-400">Set a specific price</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateField("pricingType", "pay_what_you_want")}
+                  className={`p-4 rounded-xl border text-left transition-all ${
+                    form.pricingType === "pay_what_you_want"
+                      ? "border-indigo-500 bg-indigo-500/10"
+                      : "border-white/[0.08] hover:border-white/[0.15]"
+                  }`}
+                >
+                  <div className="font-medium text-white mb-1">Pay What You Want</div>
+                  <div className="text-sm text-slate-400">Customer chooses price</div>
+                </button>
+              </div>
+
+              {form.pricingType === "pay_what_you_want" && (
+                <div className="mt-4">
+                  <Input
+                    label="Minimum Price"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={form.minimumPrice}
+                    onChange={(e) => updateField("minimumPrice", e.target.value)}
+                    error={errors.minimumPrice}
+                    helperText="Minimum amount customer must pay"
+                  />
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
