@@ -1,236 +1,107 @@
-import { RefreshCw, Clock, CheckCircle, XCircle, HelpCircle, Mail, ArrowRight } from "lucide-react";
 import Link from "next/link";
-import Navbar from "@/components/landing/navbar";
-import Footer from "@/components/landing/footer";
+import { ArrowLeft, RefreshCw, CheckCircle2, XCircle } from "lucide-react";
 
-export const metadata = {
-  title: "Refund Policy | EmbPay",
-  description: "EmbPay's refund policy - 30-day money back guarantee on all purchases.",
-};
-
-export default function RefundPage() {
+export default function RefundPolicy() {
   return (
-    <div className="min-h-screen bg-slate-950">
-      {/* Background effects */}
-      <div className="fixed inset-0 grid-pattern pointer-events-none" />
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="orb orb-1" />
-        <div className="orb orb-2" />
-      </div>
-
-      <Navbar />
-
-      <main className="relative z-10 pt-24 pb-20">
-        <div className="mx-auto max-w-4xl px-6">
-          {/* Header */}
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 mb-6">
-              <RefreshCw className="w-8 h-8 text-emerald-400" />
+    <div className="min-h-screen bg-slate-950 text-slate-300 selection:bg-indigo-500/30">
+      <header className="fixed top-0 z-50 w-full border-b border-white/5 bg-slate-950/80 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-6">
+          <Link
+            href="/"
+            className="flex items-center gap-2 text-sm font-medium text-slate-400 transition-colors hover:text-white"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Home
+          </Link>
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10">
+              <RefreshCw className="h-4 w-4 text-indigo-400" />
             </div>
-            <h1 className="text-4xl font-bold text-white mb-4">Refund Policy</h1>
-            <p className="text-slate-400">Last updated: February 8, 2026</p>
+            <span className="font-semibold text-white">Refund Policy</span>
           </div>
+        </div>
+      </header>
 
-          {/* Guarantee Banner */}
-          <div className="relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 via-transparent to-transparent p-8 mb-8">
-            <div className="relative z-10 flex flex-col sm:flex-row items-center gap-6">
-              <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center flex-shrink-0">
-                <CheckCircle className="w-8 h-8 text-emerald-400" />
-              </div>
-              <div className="text-center sm:text-left">
-                <h2 className="text-2xl font-bold text-white mb-2">30-Day Money Back Guarantee</h2>
-                <p className="text-slate-300">
-                  We stand behind our platform. If you&apos;re not satisfied with EmbPay for any reason, 
-                  contact us within 30 days for a full refund. No questions asked.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Main Content */}
-          <div className="space-y-8">
-            {/* How to Request Section */}
-            <section className="glass-card rounded-2xl p-8">
-              <div className="flex items-start gap-4 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center flex-shrink-0">
-                  <Clock className="w-5 h-5 text-indigo-400" />
-                </div>
-                <h2 className="text-xl font-semibold text-white mt-2">How to Request a Refund</h2>
-              </div>
-              <p className="text-slate-300 leading-relaxed mb-6">
-                Requesting a refund is simple and hassle-free. Just follow these steps:
-              </p>
-              <div className="grid sm:grid-cols-3 gap-4">
-                <div className="p-5 rounded-xl bg-slate-900/50 border border-slate-700/50">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 font-bold flex items-center justify-center mb-4">1</div>
-                  <h3 className="font-medium text-white mb-2">Contact Support</h3>
-                  <p className="text-sm text-slate-400">Email us at boka@agentmail.to with your account details and order information.</p>
-                </div>
-                <div className="p-5 rounded-xl bg-slate-900/50 border border-slate-700/50">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 font-bold flex items-center justify-center mb-4">2</div>
-                  <h3 className="font-medium text-white mb-2">Quick Review</h3>
-                  <p className="text-sm text-slate-400">Our team will review your request within 24-48 business hours.</p>
-                </div>
-                <div className="p-5 rounded-xl bg-slate-900/50 border border-slate-700/50">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 font-bold flex items-center justify-center mb-4">3</div>
-                  <h3 className="font-medium text-white mb-2">Refund Processed</h3>
-                  <p className="text-sm text-slate-400">Once approved, your refund will be processed within 5-10 business days.</p>
-                </div>
-              </div>
-            </section>
-
-            {/* Eligible Items Section */}
-            <section className="glass-card rounded-2xl p-8">
-              <div className="flex items-start gap-4 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center flex-shrink-0">
-                  <CheckCircle className="w-5 h-5 text-emerald-400" />
-                </div>
-                <h2 className="text-xl font-semibold text-white mt-2">What&apos;s Eligible for Refund</h2>
-              </div>
-              <ul className="space-y-3">
-                <li className="flex items-start gap-3 text-slate-300">
-                  <CheckCircle className="w-5 h-5 text-emerald-500 mt-0.5 flex-shrink-0" />
-                  <span>Monthly and annual subscription fees (prorated based on usage)</span>
-                </li>
-                <li className="flex items-start gap-3 text-slate-300">
-                  <CheckCircle className="w-5 h-5 text-emerald-500 mt-0.5 flex-shrink-0" />
-                  <span>Platform fees charged within the last 30 days</span>
-                </li>
-                <li className="flex items-start gap-3 text-slate-300">
-                  <CheckCircle className="w-5 h-5 text-emerald-500 mt-0.5 flex-shrink-0" />
-                  <span>Setup fees and one-time charges</span>
-                </li>
-                <li className="flex items-start gap-3 text-slate-300">
-                  <CheckCircle className="w-5 h-5 text-emerald-500 mt-0.5 flex-shrink-0" />
-                  <span>Additional feature purchases and upgrades</span>
-                </li>
-              </ul>
-            </section>
-
-            {/* Exceptions Section */}
-            <section className="glass-card rounded-2xl p-8">
-              <div className="flex items-start gap-4 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center flex-shrink-0">
-                  <XCircle className="w-5 h-5 text-red-400" />
-                </div>
-                <h2 className="text-xl font-semibold text-white mt-2">Non-Refundable Items</h2>
-              </div>
-              <p className="text-slate-300 leading-relaxed mb-4">
-                While we strive to be flexible, certain items are not eligible for refunds:
-              </p>
-              <ul className="space-y-3">
-                <li className="flex items-start gap-3 text-slate-300">
-                  <XCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
-                  <span><strong className="text-white">Digital products delivered</strong> - Downloads, licenses, or access to digital content that has been consumed</span>
-                </li>
-                <li className="flex items-start gap-3 text-slate-300">
-                  <XCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
-                  <span><strong className="text-white">Stripe processing fees</strong> - Third-party payment processor fees are non-refundable</span>
-                </li>
-                <li className="flex items-start gap-3 text-slate-300">
-                  <XCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
-                  <span><strong className="text-white">Chargebacks</strong> - Disputed transactions handled through your payment provider</span>
-                </li>
-                <li className="flex items-start gap-3 text-slate-300">
-                  <XCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
-                  <span><strong className="text-white">Refunds after 30 days</strong> - Requests submitted beyond the 30-day window</span>
-                </li>
-              </ul>
-            </section>
-
-            {/* Processing Time Section */}
-            <section className="glass-card rounded-2xl p-8">
-              <div className="flex items-start gap-4 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center flex-shrink-0">
-                  <RefreshCw className="w-5 h-5 text-cyan-400" />
-                </div>
-                <h2 className="text-xl font-semibold text-white mt-2">Refund Processing Times</h2>
-              </div>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl bg-slate-900/50 border border-slate-700/50">
-                  <h3 className="font-medium text-white mb-2">Credit/Debit Cards</h3>
-                  <p className="text-sm text-slate-400">5-10 business days to appear on your statement</p>
-                </div>
-                <div className="p-4 rounded-xl bg-slate-900/50 border border-slate-700/50">
-                  <h3 className="font-medium text-white mb-2">Bank Transfers</h3>
-                  <p className="text-sm text-slate-400">3-5 business days to process</p>
-                </div>
-                <div className="p-4 rounded-xl bg-slate-900/50 border border-slate-700/50">
-                  <h3 className="font-medium text-white mb-2">Digital Wallets</h3>
-                  <p className="text-sm text-slate-400">Instant to 2 business days depending on provider</p>
-                </div>
-                <div className="p-4 rounded-xl bg-slate-900/50 border border-slate-700/50">
-                  <h3 className="font-medium text-white mb-2">Stripe Account Balance</h3>
-                  <p className="text-sm text-slate-400">1-2 business days to credit your Stripe balance</p>
-                </div>
-              </div>
-            </section>
-
-            {/* FAQ Section */}
-            <section className="glass-card rounded-2xl p-8">
-              <div className="flex items-start gap-4 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center flex-shrink-0">
-                  <HelpCircle className="w-5 h-5 text-purple-400" />
-                </div>
-                <h2 className="text-xl font-semibold text-white mt-2">Frequently Asked Questions</h2>
-              </div>
-              <div className="space-y-4">
-                <div className="p-4 rounded-xl bg-slate-900/50 border border-slate-700/50">
-                  <h3 className="font-medium text-white mb-2">Can I get a partial refund?</h3>
-                  <p className="text-sm text-slate-400">Yes, we may offer partial refunds for unused portions of your subscription or prorated amounts based on your usage.</p>
-                </div>
-                <div className="p-4 rounded-xl bg-slate-900/50 border border-slate-700/50">
-                  <h3 className="font-medium text-white mb-2">What if I forget to cancel my subscription?</h3>
-                  <p className="text-sm text-slate-400">If you were charged for a renewal you didn&apos;t intend, contact us within 7 days of the charge for a full refund.</p>
-                </div>
-                <div className="p-4 rounded-xl bg-slate-900/50 border border-slate-700/50">
-                  <h3 className="font-medium text-white mb-2">Do you refund Stripe fees?</h3>
-                  <p className="text-sm text-slate-400">Stripe&apos;s processing fees are charged by Stripe directly and are not refundable through EmbPay. You may contact Stripe directly regarding their fee policies.</p>
-                </div>
-              </div>
-            </section>
-
-            {/* Contact Section */}
-            <section className="glass-card rounded-2xl p-8">
-              <div className="flex items-start gap-4 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center flex-shrink-0">
-                  <Mail className="w-5 h-5 text-blue-400" />
-                </div>
-                <h2 className="text-xl font-semibold text-white mt-2">Need Help?</h2>
-              </div>
-              <p className="text-slate-300 leading-relaxed mb-6">
-                Have questions about your refund? Our support team is here to help you with any concerns.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <a
-                  href="mailto:boka@agentmail.to?subject=Refund Request"
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl btn-primary text-white font-medium transition-all"
-                >
-                  <Mail className="w-4 h-4" />
-                  Request a Refund
-                </a>
-                <Link
-                  href="/help"
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl btn-secondary text-slate-300 font-medium transition-all"
-                >
-                  Visit Help Center
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-              </div>
-            </section>
-          </div>
-
-          {/* Footer Note */}
-          <div className="mt-12 text-center">
-            <p className="text-slate-500 text-sm">
-              We&apos;re committed to your satisfaction. If you&apos;re unhappy with our service for any reason, 
-              please let us know and we&apos;ll make it right.
+      <main className="mx-auto max-w-3xl px-6 py-32">
+        <div className="prose prose-invert prose-indigo max-w-none">
+          <div className="mb-12 text-center">
+            <h1 className="mb-4 text-4xl font-bold tracking-tight text-white sm:text-5xl">
+              Refund Policy
+            </h1>
+            <p className="text-lg text-slate-400">
+              Fair and transparent refund rules for creators and buyers.
             </p>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2 mb-12">
+             <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-6">
+                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400">
+                    <CheckCircle2 className="h-5 w-5" />
+                </div>
+                <h3 className="text-lg font-bold text-white mb-2">Eligible for Refund</h3>
+                <ul className="space-y-2 text-sm text-slate-400">
+                    <li>• Duplicate charges</li>
+                    <li>• Product not delivered/accessible</li>
+                    <li>• Major defects in digital product</li>
+                    <li>• Request within 14 days (if policy allows)</li>
+                </ul>
+             </div>
+
+             <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-6">
+                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-red-500/20 text-red-400">
+                    <XCircle className="h-5 w-5" />
+                </div>
+                <h3 className="text-lg font-bold text-white mb-2">Not Eligible</h3>
+                <ul className="space-y-2 text-sm text-slate-400">
+                    <li>• Change of mind after downloading</li>
+                    <li>• Services already rendered</li>
+                    <li>• Abuse of refund policy</li>
+                    <li>• Requests after 30 days</li>
+                </ul>
+             </div>
+          </div>
+
+          <div className="space-y-12">
+            <section>
+              <h2 className="text-2xl font-bold text-white">For Buyers</h2>
+              <p>
+                If you purchased a product through EmbPay and need a refund, please first contact the seller directly. 
+                Sellers on EmbPay set their own refund policies, but they are required to honor refunds for defective products or non-delivery.
+              </p>
+              <p>
+                If the seller does not respond within 3 business days, you may escalate the issue to EmbPay Support.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-bold text-white">For Sellers (Creators)</h2>
+              <p>
+                As a seller on EmbPay, you agree to:
+              </p>
+              <ul className="list-disc pl-6 marker:text-indigo-500">
+                <li>Clearly state your refund policy on your product pages.</li>
+                <li>Process valid refund requests promptly.</li>
+                <li>Maintain a refund rate below 1% to avoid account review.</li>
+              </ul>
+              <div className="mt-4 rounded-lg bg-slate-900 p-4 text-sm text-slate-400">
+                <strong>Note:</strong> When a refund is processed, the platform fees are generally not returned by Stripe or EmbPay, depending on current processor rules.
+              </div>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-bold text-white">Disputes & Chargebacks</h2>
+              <p>
+                We encourage resolving issues directly. Chargebacks hurt sellers and the platform. 
+                Excessive chargebacks may result in account termination.
+              </p>
+            </section>
           </div>
         </div>
       </main>
 
-      <Footer />
+      <footer className="border-t border-white/5 py-12 text-center text-sm text-slate-500">
+        <p>&copy; {new Date().getFullYear()} EmbPay Inc. All rights reserved.</p>
+      </footer>
     </div>
   );
 }

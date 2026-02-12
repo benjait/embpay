@@ -1,217 +1,120 @@
-import { FileText, AlertCircle, CheckCircle, CreditCard, Ban, Scale, Mail } from "lucide-react";
 import Link from "next/link";
-import Navbar from "@/components/landing/navbar";
-import Footer from "@/components/landing/footer";
+import { ArrowLeft, FileCheck, AlertCircle, Scale } from "lucide-react";
 
-export const metadata = {
-  title: "Terms of Service | EmbPay",
-  description: "EmbPay's terms of service - the rules and guidelines for using our platform.",
-};
-
-export default function TermsPage() {
-  const sections = [
-    {
-      icon: CheckCircle,
-      title: "1. Acceptance of Terms",
-      content: `By accessing or using EmbPay's services, you agree to be bound by these Terms of Service. 
-      If you do not agree to all the terms and conditions, you must not access or use our services. 
-      These terms constitute a legally binding agreement between you and EmbPay regarding your use of the platform.`,
-    },
-    {
-      icon: FileText,
-      title: "2. Account Registration",
-      content: `To use certain features of EmbPay, you must register for an account. You agree to provide 
-      accurate, current, and complete information during the registration process and to update 
-      such information to keep it accurate, current, and complete. You are responsible for 
-      safeguarding your password and for all activities that occur under your account. 
-      You must notify us immediately of any unauthorized use of your account.`,
-    },
-    {
-      icon: CreditCard,
-      title: "3. Payment Processing",
-      content: `EmbPay uses Stripe to process payments. By using our payment services, you agree to comply 
-      with Stripe's terms of service. You are responsible for all fees associated with your use of 
-      the services, including transaction fees charged by Stripe. All payments are processed in 
-      accordance with our pricing terms, which may be updated from time to time.`,
-    },
-    {
-      icon: Ban,
-      title: "4. Prohibited Uses",
-      content: `You may not use EmbPay for any illegal or unauthorized purpose. Prohibited activities include:
-      
-      • Selling illegal goods or services
-      • Engaging in fraudulent transactions
-      • Violating intellectual property rights
-      • Distributing malware or harmful code
-      • Attempting to breach our security systems
-      • Using the platform to harass or abuse others
-      • Any activity that violates applicable laws or regulations`,
-    },
-    {
-      icon: AlertCircle,
-      title: "5. Termination",
-      content: `We may terminate or suspend your account immediately, without prior notice or liability, 
-      for any reason whatsoever, including without limitation if you breach these Terms. 
-      Upon termination, your right to use the service will immediately cease. 
-      All provisions of the Terms which by their nature should survive termination shall survive 
-      termination, including ownership provisions, warranty disclaimers, indemnity, and limitations of liability.`,
-    },
-  ];
-
+export default function TermsOfService() {
   return (
-    <div className="min-h-screen bg-slate-950">
-      {/* Background effects */}
-      <div className="fixed inset-0 grid-pattern pointer-events-none" />
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="orb orb-1" />
-        <div className="orb orb-2" />
-      </div>
-
-      <Navbar />
-
-      <main className="relative z-10 pt-24 pb-20">
-        <div className="mx-auto max-w-4xl px-6">
-          {/* Header */}
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 mb-6">
-              <FileText className="w-8 h-8 text-indigo-400" />
+    <div className="min-h-screen bg-slate-950 text-slate-300 selection:bg-indigo-500/30">
+      <header className="fixed top-0 z-50 w-full border-b border-white/5 bg-slate-950/80 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-6">
+          <Link
+            href="/"
+            className="flex items-center gap-2 text-sm font-medium text-slate-400 transition-colors hover:text-white"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Home
+          </Link>
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10">
+              <FileCheck className="h-4 w-4 text-indigo-400" />
             </div>
-            <h1 className="text-4xl font-bold text-white mb-4">Terms of Service</h1>
-            <p className="text-slate-400">Last updated: February 8, 2026</p>
+            <span className="font-semibold text-white">Terms of Service</span>
           </div>
+        </div>
+      </header>
 
-          {/* Introduction */}
-          <div className="glass-card rounded-2xl p-8 mb-8">
-            <p className="text-slate-300 leading-relaxed">
-              These Terms of Service (&quot;Terms&quot;) govern your access to and use of EmbPay's 
-              website, products, and services (&quot;Services&quot;). Please read these Terms carefully 
-              before using our Services. By using our Services, you agree to be bound by these Terms.
+      <main className="mx-auto max-w-3xl px-6 py-32">
+        <div className="prose prose-invert prose-indigo max-w-none">
+          <div className="mb-12 text-center">
+            <h1 className="mb-4 text-4xl font-bold tracking-tight text-white sm:text-5xl">
+              Terms of Service
+            </h1>
+            <p className="text-lg text-slate-400">
+              Last updated: February 12, 2026
             </p>
           </div>
 
-          {/* Main Content */}
-          <div className="space-y-8">
-            {sections.map((section) => (
-              <section key={section.title} className="glass-card rounded-2xl p-8">
-                <div className="flex items-start gap-4 mb-6">
-                  <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center flex-shrink-0">
-                    <section.icon className="w-5 h-5 text-indigo-400" />
-                  </div>
-                  <h2 className="text-xl font-semibold text-white mt-2">{section.title}</h2>
-                </div>
-                <div className="text-slate-300 leading-relaxed whitespace-pre-line">
-                  {section.content}
-                </div>
-              </section>
-            ))}
-
-            {/* Liability Section */}
-            <section className="glass-card rounded-2xl p-8">
-              <div className="flex items-start gap-4 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center flex-shrink-0">
-                  <AlertCircle className="w-5 h-5 text-amber-400" />
-                </div>
-                <h2 className="text-xl font-semibold text-white mt-2">6. Limitation of Liability</h2>
-              </div>
-              <p className="text-slate-300 leading-relaxed mb-4">
-                To the maximum extent permitted by applicable law, EmbPay and its affiliates, 
-                officers, employees, agents, suppliers, and licensors shall not be liable for 
-                any indirect, incidental, special, consequential, or punitive damages, including 
-                without limitation, loss of profits, data, use, goodwill, or other intangible losses, 
-                resulting from:
+          <div className="space-y-12">
+            <section>
+              <h2 className="flex items-center gap-3 text-2xl font-bold text-white">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/20 text-indigo-400 text-sm">1</span>
+                Acceptance of Terms
+              </h2>
+              <p>
+                By accessing or using EmbPay ("the Service"), you agree to be bound by these Terms. If you disagree with any part of the terms, you may not access the Service.
               </p>
-              <ul className="space-y-3">
-                <li className="flex items-start gap-3 text-slate-300">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-2 flex-shrink-0" />
-                  Your access to or use of or inability to access or use the Services
-                </li>
-                <li className="flex items-start gap-3 text-slate-300">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-2 flex-shrink-0" />
-                  Any conduct or content of any third party on the Services
-                </li>
-                <li className="flex items-start gap-3 text-slate-300">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-2 flex-shrink-0" />
-                  Any content obtained from the Services
-                </li>
-                <li className="flex items-start gap-3 text-slate-300">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-2 flex-shrink-0" />
-                  Unauthorized access, use, or alteration of your transmissions or content
-                </li>
+            </section>
+
+            <section>
+              <h2 className="flex items-center gap-3 text-2xl font-bold text-white">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/20 text-indigo-400 text-sm">2</span>
+                Accounts
+              </h2>
+              <p>
+                When you create an account with us, you guarantee that the information you provide is accurate, complete, and current at all times. Inaccurate, incomplete, or obsolete information may result in the immediate termination of your account.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="flex items-center gap-3 text-2xl font-bold text-white">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/20 text-indigo-400 text-sm">3</span>
+                Payments & Fees
+              </h2>
+              <ul className="list-disc pl-6 marker:text-indigo-500">
+                <li><strong>Transaction Fees:</strong> We charge a platform fee per transaction as described on our Pricing page.</li>
+                <li><strong>Payouts:</strong> Payouts are processed via Stripe Connect and are subject to their terms and processing times.</li>
+                <li><strong>Taxes:</strong> You are responsible for determining and paying any applicable taxes on your sales.</li>
               </ul>
             </section>
 
-            {/* Indemnification Section */}
-            <section className="glass-card rounded-2xl p-8">
-              <h2 className="text-xl font-semibold text-white mb-4">7. Indemnification</h2>
-              <p className="text-slate-300 leading-relaxed">
-                You agree to defend, indemnify, and hold harmless EmbPay and its affiliates, 
-                officers, employees, agents, suppliers, and licensors from and against any claims, 
-                liabilities, damages, judgments, awards, losses, costs, expenses, or fees 
-                (including reasonable attorneys' fees) arising out of or relating to your violation 
-                of these Terms or your use of the Services.
-              </p>
-            </section>
-
-            {/* Governing Law Section */}
-            <section className="glass-card rounded-2xl p-8">
-              <div className="flex items-start gap-4 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center flex-shrink-0">
-                  <Scale className="w-5 h-5 text-purple-400" />
+            <section>
+              <h2 className="flex items-center gap-3 text-2xl font-bold text-white">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/20 text-indigo-400 text-sm">4</span>
+                Prohibited Uses
+              </h2>
+              <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-6">
+                <div className="mb-4 flex items-center gap-2 text-red-400">
+                  <AlertCircle className="h-5 w-5" />
+                  <span className="font-semibold">Strictly Prohibited Items</span>
                 </div>
-                <h2 className="text-xl font-semibold text-white mt-2">8. Governing Law</h2>
+                <ul className="space-y-2 text-sm text-slate-400">
+                  <li>• Illegal products or services</li>
+                  <li>• Adult content or services</li>
+                  <li>• Weapons, ammunition, or explosives</li>
+                  <li>• Drugs or drug paraphernalia</li>
+                  <li>• High-risk businesses (gambling, betting)</li>
+                </ul>
               </div>
-              <p className="text-slate-300 leading-relaxed">
-                These Terms shall be governed and construed in accordance with the laws of the 
-                United States, without regard to its conflict of law provisions. Our failure to 
-                enforce any right or provision of these Terms will not be considered a waiver of 
-                those rights. If any provision of these Terms is held to be invalid or unenforceable, 
-                the remaining provisions will remain in effect.
+            </section>
+
+            <section>
+              <h2 className="flex items-center gap-3 text-2xl font-bold text-white">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/20 text-indigo-400 text-sm">5</span>
+                Limitation of Liability
+              </h2>
+              <p>
+                In no event shall EmbPay, nor its directors, employees, partners, agents, suppliers, or affiliates, be liable for any indirect, incidental, special, consequential or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses.
               </p>
             </section>
 
-            {/* Changes Section */}
-            <section className="glass-card rounded-2xl p-8">
-              <h2 className="text-xl font-semibold text-white mb-4">9. Changes to Terms</h2>
-              <p className="text-slate-300 leading-relaxed">
-                We reserve the right, at our sole discretion, to modify or replace these Terms at 
-                any time. If a revision is material, we will try to provide at least 30 days' notice 
-                prior to any new terms taking effect. What constitutes a material change will be 
-                determined at our sole discretion. By continuing to access or use our Services 
-                after those revisions become effective, you agree to be bound by the revised terms.
-              </p>
-            </section>
-
-            {/* Contact Section */}
-            <section className="glass-card rounded-2xl p-8">
-              <div className="flex items-start gap-4 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center flex-shrink-0">
-                  <Mail className="w-5 h-5 text-emerald-400" />
-                </div>
-                <h2 className="text-xl font-semibold text-white mt-2">10. Contact Us</h2>
+            <section>
+              <h2 className="flex items-center gap-3 text-2xl font-bold text-white">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/20 text-indigo-400 text-sm">6</span>
+                Governing Law
+              </h2>
+              <div className="flex items-center gap-3 rounded-xl bg-slate-900 p-4">
+                <Scale className="h-5 w-5 text-slate-500" />
+                <p className="m-0 text-sm">
+                  These Terms shall be governed and construed in accordance with the laws of Delaware, United States, without regard to its conflict of law provisions.
+                </p>
               </div>
-              <p className="text-slate-300 leading-relaxed mb-6">
-                If you have any questions about these Terms, please contact us at:
-              </p>
-              <a
-                href="mailto:boka@agentmail.to"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl btn-primary text-white font-medium transition-all"
-              >
-                <Mail className="w-4 h-4" />
-                boka@agentmail.to
-              </a>
             </section>
-          </div>
-
-          {/* Footer Note */}
-          <div className="mt-12 text-center">
-            <p className="text-slate-500 text-sm">
-              By using EmbPay, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.
-            </p>
           </div>
         </div>
       </main>
 
-      <Footer />
+      <footer className="border-t border-white/5 py-12 text-center text-sm text-slate-500">
+        <p>&copy; {new Date().getFullYear()} EmbPay Inc. All rights reserved.</p>
+      </footer>
     </div>
   );
 }
