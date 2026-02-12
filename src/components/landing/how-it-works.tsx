@@ -1,88 +1,81 @@
-import { Link2, Package, Rocket } from "lucide-react";
+import { Wallet, PackagePlus, Code2, ArrowRight } from "lucide-react";
 
 const steps = [
   {
-    number: "01",
-    icon: Link2,
+    icon: Wallet,
     title: "Connect Stripe",
     description:
-      "Link your Stripe account in one click. We use Stripe Connect for secure, instant onboarding — your money goes directly to you.",
-    color: "from-indigo-500 to-indigo-600",
-    iconColor: "text-indigo-400",
-    hasConnector: true,
+      "Link your Stripe account in one click. We automatically sync your products, customers, and payouts.",
+    color: "bg-indigo-500",
+    shadow: "shadow-indigo-500/50",
   },
   {
-    number: "02",
-    icon: Package,
+    icon: PackagePlus,
     title: "Create Products",
     description:
-      "Set up products in minutes — one-time payments, subscriptions, payment plans. Add order bumps and upsells to maximize revenue.",
-    color: "from-violet-500 to-violet-600",
-    iconColor: "text-violet-400",
-    hasConnector: true,
+      "Add digital goods, subscriptions, or services. Set prices, add order bumps, and configure delivery.",
+    color: "bg-violet-500",
+    shadow: "shadow-violet-500/50",
   },
   {
-    number: "03",
-    icon: Rocket,
+    icon: Code2,
     title: "Embed & Sell",
     description:
-      "Grab your embed code, drop it on any page, and start selling. Share links, embed iframes, or use our hosted checkout.",
-    color: "from-cyan-500 to-cyan-600",
-    iconColor: "text-cyan-400",
-    hasConnector: false,
+      "Copy a single line of code to embed the checkout anywhere. Start accepting payments instantly.",
+    color: "bg-emerald-500",
+    shadow: "shadow-emerald-500/50",
   },
 ];
 
 export default function HowItWorks() {
   return (
-    <section id="how-it-works" className="relative py-28 sm:py-36">
-      <div className="section-divider absolute left-0 right-0 top-0" />
-
-      <div className="mx-auto max-w-7xl px-6">
-        {/* Section Header */}
-        <div className="mx-auto max-w-2xl text-center scroll-fade-in">
-          <p className="mb-4 text-sm font-semibold uppercase tracking-widest text-indigo-400">
-            How It Works
-          </p>
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
-            Up and running in{" "}
-            <span className="gradient-text">three steps</span>
+    <section id="how-it-works" className="relative py-24 sm:py-32 overflow-hidden">
+      {/* Background Decorative Line */}
+      <div className="absolute top-1/2 left-0 w-full h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent -translate-y-1/2 hidden lg:block" />
+      
+      <div className="mx-auto max-w-7xl px-6 lg:px-8 relative z-10">
+        <div className="mx-auto max-w-2xl text-center mb-16">
+          <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            Start selling in <span className="gradient-text">3 simple steps</span>
           </h2>
-          <p className="mt-5 text-lg leading-relaxed text-slate-400">
-            From zero to accepting payments in under five minutes. No developers
-            needed.
+          <p className="mt-4 text-lg text-slate-400">
+            No complex setup. No coding knowledge required. Just connect and go.
           </p>
         </div>
 
-        {/* Steps */}
-        <div className="mt-20 grid gap-10 md:grid-cols-3 md:gap-6">
-          {steps.map((step) => {
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-3 lg:gap-8">
+          {steps.map((step, idx) => {
             const Icon = step.icon;
             return (
               <div
-                key={step.number}
-                className={`relative text-center scroll-fade-in ${step.hasConnector ? "step-connector" : ""}`}
+                key={step.title}
+                className="relative flex flex-col items-center text-center scroll-fade-in group"
+                style={{ animationDelay: `${idx * 200}ms` }}
               >
-                {/* Number Badge */}
-                <div className="relative mx-auto mb-8">
-                  {/* Glow ring */}
-                  <div
-                    className={`absolute inset-0 mx-auto h-20 w-20 rounded-2xl bg-gradient-to-br ${step.color} opacity-20 blur-xl`}
-                  />
-                  {/* Icon container */}
-                  <div className="relative mx-auto flex h-20 w-20 items-center justify-center rounded-2xl border border-white/[0.08] bg-slate-900/80 shadow-2xl">
-                    <Icon className={`h-8 w-8 ${step.iconColor}`} />
-                  </div>
-                  {/* Step number */}
-                  <div className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 text-xs font-bold text-white shadow-lg shadow-indigo-500/30">
-                    {step.number}
-                  </div>
+                {/* Step Number Badge */}
+                <div className="absolute -top-4 -right-4 h-8 w-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-sm font-bold text-slate-400 z-20 group-hover:bg-indigo-500 group-hover:text-white group-hover:border-indigo-400 transition-all">
+                  {idx + 1}
                 </div>
 
-                <h3 className="mb-3 text-xl font-semibold text-white">
+                {/* Icon Circle with Glow */}
+                <div className="relative mb-8">
+                  <div className={`absolute inset-0 rounded-full blur-xl opacity-20 ${step.color} group-hover:opacity-40 transition-opacity duration-500`} />
+                  <div className={`relative flex h-20 w-20 items-center justify-center rounded-2xl bg-slate-900 border border-white/10 shadow-xl transition-transform duration-300 group-hover:-translate-y-2 group-hover:border-white/20`}>
+                    <Icon className={`h-8 w-8 text-white`} />
+                  </div>
+                  
+                  {/* Connecting Arrow (Desktop Only) */}
+                  {idx < steps.length - 1 && (
+                    <div className="absolute top-1/2 -right-[calc(50%+2rem)] hidden w-[calc(100%-4rem)] -translate-y-1/2 lg:block">
+                      <ArrowRight className="mx-auto h-6 w-6 text-slate-700 animate-pulse" />
+                    </div>
+                  )}
+                </div>
+
+                <h3 className="text-xl font-bold text-white mb-3 group-hover:text-indigo-300 transition-colors">
                   {step.title}
                 </h3>
-                <p className="mx-auto max-w-xs text-sm leading-relaxed text-slate-400">
+                <p className="text-base text-slate-400 leading-relaxed max-w-sm mx-auto">
                   {step.description}
                 </p>
               </div>
