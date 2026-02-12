@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
           suspended: u.suspended,
           products: u._count.products,
           orders: u._count.orders,
-          revenue: Math.round((revenueMap.get(u.id) || 0) * 100) / 100,
+          revenue: Math.round((revenueMap.get(u.id) || 0)) / 100,
           createdAt: u.createdAt.toISOString(),
         })),
         total,

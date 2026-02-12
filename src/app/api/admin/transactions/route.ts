@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
       data: {
         transactions: orders.map(o => ({
           id: o.id,
-          amount: o.amount,
+          amount: o.amount / 100,
           currency: o.currency,
           status: o.status,
           customerEmail: o.customerEmail,
@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
           merchantEmail: o.user.email,
           licenseKey: o.licenseKey?.key || null,
           licenseStatus: o.licenseKey?.status || null,
-          platformFee: o.platformFee,
+          platformFee: o.platformFee / 100,
           stripePaymentId: o.stripePaymentId,
           createdAt: o.createdAt.toISOString(),
         })),
@@ -84,8 +84,8 @@ export async function GET(request: NextRequest) {
         page,
         totalPages: Math.ceil(total / limit),
         summary: {
-          totalRevenue: totalRevenue._sum.amount || 0,
-          todayRevenue: todayRevenue._sum.amount || 0,
+          totalRevenue: (totalRevenue._sum.amount || 0) / 100,
+          todayRevenue: (todayRevenue._sum.amount || 0) / 100,
         },
       },
     });
