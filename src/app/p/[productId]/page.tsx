@@ -31,6 +31,8 @@ interface Product {
   type: string;
   interval: string | null;
   deliveryUrl: string | null;
+  pricingType: string;
+  minimumPrice: number | null;
   bumpEnabled: boolean;
   bumpProduct: string | null;
   bumpPrice: number | null;
@@ -48,6 +50,12 @@ export default function PublicProductPage() {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  
+  // Pay What You Want
+  const [customPrice, setCustomPrice] = useState<string>("");
+  
+  // Order Bump
+  const [bumpSelected, setBumpSelected] = useState(false);
 
   useEffect(() => {
     fetch(`/api/products/${productId}`)
@@ -209,16 +217,36 @@ export default function PublicProductPage() {
             <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden product-fade-in-delay-1">
               {/* Price Header */}
               <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 sm:p-8 text-white">
-                <div className="flex items-baseline gap-2 mb-1">
-                  <span className="text-4xl sm:text-5xl font-extrabold tracking-tight">
-                    {formatPrice(product.price, product.currency)}
-                  </span>
-                  {product.type === "subscription" && (
-                    <span className="text-indigo-200 text-base font-medium">
-                      / {product.interval || "month"}
+                {product.pricingType === "pay_what_you_want" ? (
+                  <div>
+                    <label className="text-sm text-indigo-200 block mb-2">
+                      Pay what you want (min {formatPrice(product.minimumPrice || product.price, product.currency)})
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">{product.currency === "usd" ? "$" : product.currency}</span>
+                      <input
+                        type="number"
+                        min={(product.minimumPrice || product.price) / 100}
+                        step="0.01"
+                        value={customPrice}
+                        onChange={(e) => setCustomPrice(e.target.value)}
+                        placeholder={(product.minimumPrice || product.price) / 100}
+                        className="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-3xl font-bold w-32 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-baseline gap-2 mb-1">
+                    <span className="text-4xl sm:text-5xl font-extrabold tracking-tight">
+                      {formatPrice(product.price, product.currency)}
                     </span>
-                  )}
-                </div>
+                    {product.type === "subscription" && (
+                      <span className="text-indigo-200 text-base font-medium">
+                        / {product.interval || "month"}
+                      </span>
+                    )}
+                  </div>
+                )}
                 <p className="text-indigo-200 text-sm">
                   {product.type === "subscription"
                     ? "Cancel anytime — no commitment"
@@ -229,20 +257,29 @@ export default function PublicProductPage() {
               <div className="p-6 sm:p-8">
                 {/* Order Bump */}
                 {product.bumpEnabled && product.bumpPrice && (
-                  <div className="mb-6 p-4 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200/60 rounded-xl relative overflow-hidden">
+                  <div 
+                    onClick={() => setBumpSelected(!bumpSelected)}
+                    className={`mb-6 p-4 border-2 rounded-xl relative overflow-hidden cursor-pointer transition-all ${
+                      bumpSelected 
+                        ? "bg-gradient-to-r from-amber-50 to-orange-50 border-amber-400" 
+                        : "bg-gray-50 border-gray-200 hover:border-amber-300"
+                    }`}
+                  >
                     <div className="absolute top-0 right-0 bg-amber-400 text-amber-900 text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-bl-lg">
                       Bonus
                     </div>
                     <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <Star className="w-4 h-4 text-amber-600" />
+                      <div className={`w-6 h-6 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                        bumpSelected ? "bg-amber-500 border-amber-500" : "border-gray-300"
+                      }`}>
+                        {bumpSelected && <Check className="w-4 h-4 text-white" />}
                       </div>
-                      <div>
+                      <div className="flex-1">
                         <p className="font-bold text-gray-900 text-sm">
                           🔥 {product.bumpProduct || "Exclusive Bonus"}
                         </p>
                         <p className="text-gray-500 text-xs mt-1">
-                          Add for just {formatPrice(product.bumpPrice, product.currency)} — available at checkout
+                          Add for just {formatPrice(product.bumpPrice, product.currency)} — click to add
                         </p>
                       </div>
                     </div>
@@ -251,11 +288,22 @@ export default function PublicProductPage() {
 
                 {/* Buy Now CTA */}
                 <Link
-                  href={`/checkout/${product.id}`}
+                  href={`/checkout/${product.id}${(() => {
+                    const params = new URLSearchParams();
+                    if (product.pricingType === "pay_what_you_want" && customPrice) {
+                      params.set("price", Math.round(parseFloat(customPrice) * 100).toString());
+                    }
+                    if (bumpSelected) {
+                      params.set("bump", "true");
+                    }
+                    return params.toString() ? `?${params.toString()}` : "";
+                  })()}`}
                   className="group w-full py-4 px-6 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-xl text-base transition-all duration-300 flex items-center justify-center gap-2.5 shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:-translate-y-0.5 no-underline"
                 >
                   <Lock className="w-4 h-4" />
-                  Buy Now
+                  {product.pricingType === "pay_what_you_want" && customPrice
+                    ? `Pay ${formatPrice(Math.round(parseFloat(customPrice) * 100), product.currency)}`
+                    : "Buy Now"}
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                 </Link>
 
