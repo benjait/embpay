@@ -301,7 +301,6 @@ export default function NewProductPage() {
                 value={form.deliveryInstructions}
                 onChange={(e) => updateField("deliveryInstructions", e.target.value)}
                 rows={3}
-                hint="Or provide a delivery URL below"
               />
 
               <Input
@@ -439,7 +438,7 @@ export default function NewProductPage() {
                   <h2 className="text-base font-semibold text-white flex items-center gap-2">
                     <Clock className="h-4 w-4 text-indigo-400" />
                     Trial Period
-                    <Badge variant="outline" className="ml-2 text-xs">Optional</Badge>
+                    <Badge  className="ml-2 text-xs">Optional</Badge>
                   </h2>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -488,7 +487,7 @@ export default function NewProductPage() {
                 <h2 className="text-base font-semibold text-white flex items-center gap-2">
                   <Package className="h-4 w-4 text-indigo-400" />
                   Quantity Limits
-                  <Badge variant="outline" className="ml-2 text-xs">Scarcity</Badge>
+                  <Badge  className="ml-2 text-xs">Scarcity</Badge>
                 </h2>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -511,7 +510,7 @@ export default function NewProductPage() {
                       placeholder="100"
                       value={form.quantityLimit}
                       onChange={(e) => updateField("quantityLimit", e.target.value)}
-                      hint="Product will show as "Sold Out" after this limit"
+                      hint='Product will show as "Sold Out" after this limit'
                     />
                   </div>
                 )}
@@ -524,7 +523,7 @@ export default function NewProductPage() {
                 <h2 className="text-base font-semibold text-white flex items-center gap-2">
                   <Zap className="h-4 w-4 text-amber-400" />
                   Order Bump (Upsell)
-                  <Badge variant="outline" className="ml-2 text-xs">Boost Revenue</Badge>
+                  <Badge  className="ml-2 text-xs">Boost Revenue</Badge>
                 </h2>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -578,7 +577,7 @@ export default function NewProductPage() {
                 <h2 className="text-base font-semibold text-white flex items-center gap-2">
                   <Globe className="h-4 w-4 text-indigo-400" />
                   Geographic Restrictions
-                  <Badge variant="outline" className="ml-2 text-xs">Optional</Badge>
+                  <Badge  className="ml-2 text-xs">Optional</Badge>
                 </h2>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -600,7 +599,6 @@ export default function NewProductPage() {
                       value={form.allowedCountries}
                       onChange={(e) => updateField("allowedCountries", e.target.value)}
                       rows={2}
-                      hint="Enter country codes separated by commas (ISO 3166-1 alpha-2)"
                     />
                     <p className="text-xs text-slate-500 mt-2">
                       Leave empty to allow all countries. Customers from other countries will see "Not available in your region"
@@ -616,7 +614,7 @@ export default function NewProductPage() {
                 <h2 className="text-base font-semibold text-white flex items-center gap-2">
                   <Mail className="h-4 w-4 text-indigo-400" />
                   Custom Purchase Email
-                  <Badge variant="outline" className="ml-2 text-xs">Branding</Badge>
+                  <Badge  className="ml-2 text-xs">Branding</Badge>
                 </h2>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -648,7 +646,6 @@ export default function NewProductPage() {
                       value={form.customEmailBody}
                       onChange={(e) => updateField("customEmailBody", e.target.value)}
                       rows={6}
-                      hint="You can use HTML for formatting. Keep it simple for best results."
                     />
                   </div>
                 )}
