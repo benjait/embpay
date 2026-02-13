@@ -9,6 +9,7 @@ const variants = {
   error: "bg-red-500/10 text-red-400 border-red-500/20",
   info: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
   default: "bg-slate-500/10 text-slate-400 border-slate-500/20",
+  outline: "bg-transparent text-slate-400 border-slate-700",
 };
 
 interface BadgeProps {
