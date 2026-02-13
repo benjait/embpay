@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma"; // Use singleton
 import { getAuthUser } from "@/lib/auth";
 
-const prisma = new PrismaClient({
-  datasourceUrl: process.env.DATABASE_URL,
-});
+// Force dynamic to ensure we check auth, but we can cache manually
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-  console.log("[Dashboard API] Called");
-  
   try {
     const user = await getAuthUser(request);
     
@@ -19,156 +16,144 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Simplified - return empty data immediately if queries fail
+    // Dates for filtering
     const now = new Date();
+    const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
 
-    let totalProducts = 0;
-    let totalOrders = 0;
-    let completedOrders = 0;
-    let completedOrdersPrevMonth = 0;
-    let allCompletedOrders: any[] = [];
-    let recentOrders: any[] = [];
-    let last7DaysOrders: any[] = [];
+    // ⚡ Execute all DB queries in parallel for maximum speed
+    const [
+      totalStats,
+      thisMonthStats,
+      lastMonthStats,
+      recentOrders,
+      productsCount,
+      chartDataRaw
+    ] = await Promise.all([
+      // 1. Total Revenue & Orders (Lifetime)
+      prisma.order.aggregate({
+        where: { userId: user.id, status: "completed" },
+        _sum: { amount: true },
+        _count: { id: true },
+      }),
 
-    try {
-      // Run all queries in parallel with individual timeouts
-      const results = await Promise.allSettled([
-        prisma.product.count({ where: { userId: user.id } }),
-        prisma.order.count({ where: { userId: user.id } }),
-        prisma.order.count({
-          where: { userId: user.id, status: "completed", createdAt: { gte: thirtyDaysAgo } },
-        }),
-        prisma.order.count({
-          where: { userId: user.id, status: "completed", createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } },
-        }),
-        prisma.order.findMany({
-          where: { userId: user.id, status: "completed" },
-          select: { amount: true, createdAt: true },
-        }),
-        prisma.order.findMany({
-          where: { userId: user.id },
-          orderBy: { createdAt: "desc" },
-          take: 10,
-          include: { product: { select: { name: true } } },
-        }),
-        prisma.order.findMany({
-          where: { userId: user.id, status: "completed", createdAt: { gte: sevenDaysAgo } },
-          select: { amount: true, createdAt: true },
-        }),
-      ]);
-
-      totalProducts = results[0].status === 'fulfilled' ? results[0].value : 0;
-      totalOrders = results[1].status === 'fulfilled' ? results[1].value : 0;
-      completedOrders = results[2].status === 'fulfilled' ? results[2].value : 0;
-      completedOrdersPrevMonth = results[3].status === 'fulfilled' ? results[3].value : 0;
-      allCompletedOrders = results[4].status === 'fulfilled' ? results[4].value : [];
-      recentOrders = results[5].status === 'fulfilled' ? results[5].value : [];
-      last7DaysOrders = results[6].status === 'fulfilled' ? results[6].value : [];
-
-    } catch (dbError) {
-      console.error("[Dashboard API] DB queries failed:", dbError);
-      // Return empty data - don't fail the request
-    }
-
-    // Calculate metrics
-    const totalRevenue = allCompletedOrders.reduce((sum, o) => sum + (o?.amount || 0), 0);
-    const revenueThisMonth = allCompletedOrders
-      .filter((o) => o?.createdAt >= thirtyDaysAgo)
-      .reduce((sum, o) => sum + (o?.amount || 0), 0);
-    const revenuePrevMonth = allCompletedOrders
-      .filter((o) => o?.createdAt >= sixtyDaysAgo && o?.createdAt < thirtyDaysAgo)
-      .reduce((sum, o) => sum + (o?.amount || 0), 0);
-
-    const revenueChange = revenuePrevMonth > 0
-      ? ((revenueThisMonth - revenuePrevMonth) / revenuePrevMonth) * 100
-      : revenueThisMonth > 0 ? 100 : 0;
-
-    const ordersChange = completedOrdersPrevMonth > 0
-      ? ((completedOrders - completedOrdersPrevMonth) / completedOrdersPrevMonth) * 100
-      : completedOrders > 0 ? 100 : 0;
-
-    const conversionRate = totalOrders > 0 ? (allCompletedOrders.length / totalOrders) * 100 : 0;
-
-    // Build chart data
-    const chartData = [];
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
-      const dateStr = date.toISOString().split("T")[0];
-      const dayLabel = date.toLocaleDateString("en-US", { weekday: "short" });
-      const dayRevenue = last7DaysOrders
-        .filter((o) => o?.createdAt?.toISOString().split("T")[0] === dateStr)
-        .reduce((sum, o) => sum + (o?.amount || 0), 0);
-      chartData.push({ date: dateStr, label: dayLabel, revenue: dayRevenue });
-    }
-
-    // Get current month order count for plan limits
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
-    let monthlyOrders = 0;
-    try {
-      monthlyOrders = await prisma.order.count({
-        where: { userId: user.id, createdAt: { gte: startOfMonth } },
-      });
-    } catch {
-      monthlyOrders = 0;
-    }
-
-    // Get full user data including plan info
-    let userData = null;
-    try {
-      userData = await prisma.user.findUnique({
-        where: { id: user.id },
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          plan: true,
-          planExpiresAt: true,
+      // 2. This Month Revenue & Orders
+      prisma.order.aggregate({
+        where: { 
+          userId: user.id, 
+          status: "completed",
+          createdAt: { gte: startOfThisMonth }
         },
-      });
-    } catch {
-      userData = { ...user, plan: "free", planExpiresAt: null };
-    }
+        _sum: { amount: true },
+        _count: { id: true },
+      }),
 
-    console.log("[Dashboard API] Success - products:", totalProducts, "orders:", totalOrders);
+      // 3. Last Month Revenue & Orders (for comparison)
+      prisma.order.aggregate({
+        where: { 
+          userId: user.id, 
+          status: "completed",
+          createdAt: { gte: startOfLastMonth, lte: endOfLastMonth }
+        },
+        _sum: { amount: true },
+        _count: { id: true },
+      }),
+
+      // 4. Recent 5 Orders (for table)
+      prisma.order.findMany({
+        where: { userId: user.id },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        include: { product: { select: { name: true } } },
+      }),
+
+      // 5. Total Products
+      prisma.product.count({ where: { userId: user.id } }),
+
+      // 6. Last 7 Days Revenue (for chart) - optimized to minimal fetch
+      prisma.order.findMany({
+        where: { 
+          userId: user.id, 
+          status: "completed", 
+          createdAt: { gte: sevenDaysAgo } 
+        },
+        select: { amount: true, createdAt: true },
+      }),
+    ]);
+
+    // Process Data
+    const totalRevenue = totalStats._sum.amount || 0;
+    const totalOrders = totalStats._count.id || 0;
+    
+    const thisMonthRevenue = thisMonthStats._sum.amount || 0;
+    const lastMonthRevenue = lastMonthStats._sum.amount || 0;
+    
+    // Calculate percentage change
+    const revenueChange = lastMonthRevenue > 0
+      ? ((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100
+      : thisMonthRevenue > 0 ? 100 : 0;
+
+    // Calculate Conversion Rate (Completed / Total Orders) - Approx
+    // Need total attempted orders count for accuracy
+    const totalAttempts = await prisma.order.count({ where: { userId: user.id } });
+    const conversionRate = totalAttempts > 0 
+      ? (totalOrders / totalAttempts) * 100 
+      : 0;
+
+    // Format Chart Data
+    const chartDataMap = new Map<string, number>();
+    // Initialize last 7 days with 0
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+      chartDataMap.set(d.toISOString().split('T')[0], 0);
+    }
+    // Fill with actual data
+    chartDataRaw.forEach(order => {
+      const dateKey = order.createdAt.toISOString().split('T')[0];
+      if (chartDataMap.has(dateKey)) {
+        chartDataMap.set(dateKey, (chartDataMap.get(dateKey) || 0) + (order.amount || 0));
+      }
+    });
+
+    const chartData = Array.from(chartDataMap.entries()).map(([date, amount]) => ({
+      date,
+      label: new Date(date).toLocaleDateString('en-US', { weekday: 'short' }),
+      revenue: amount / 100 // Convert cents to dollars
+    }));
 
     return NextResponse.json({
       success: true,
       data: {
         totalRevenue: totalRevenue / 100,
-        totalOrders,
-        totalProducts,
-        conversionRate: Math.round(conversionRate * 100) / 100,
+        totalOrders: totalOrders, // Total completed
+        totalProducts: productsCount,
+        conversionRate: Math.round(conversionRate * 10) / 10,
         revenueChange: Math.round(revenueChange * 10) / 10,
-        ordersChange: Math.round(ordersChange * 10) / 10,
-        recentOrders: recentOrders.map((o) => ({
-          id: o?.id || "",
-          customerEmail: o?.customerEmail || "",
-          customerName: o?.customerName || null,
-          productName: o?.product?.name || "Unknown",
-          amount: (o?.amount || 0) / 100,
-          status: o?.status || "pending",
-          createdAt: o?.createdAt?.toISOString() || new Date().toISOString(),
+        recentOrders: recentOrders.map(o => ({
+          id: o.id,
+          customerEmail: o.customerEmail,
+          productName: o.product?.name || "Unknown",
+          amount: o.amount / 100,
+          status: o.status,
+          createdAt: o.createdAt.toISOString(),
         })),
-        chartData: chartData.map(d => ({
-          ...d,
-          revenue: d.revenue / 100,
-        })),
-        // For plans page
-        user: userData,
-        products: totalProducts,
-        orders: monthlyOrders,
-      },
+        chartData,
+        // Helper for plans
+        orders: thisMonthStats._count.id,
+      }
+    }, {
+      headers: {
+        // Cache for 60 seconds to make navigation instant
+        'Cache-Control': 'private, s-maxage=60, stale-while-revalidate=300'
+      }
     });
-    
+
   } catch (error: any) {
-    console.error("[Dashboard API] Critical error:", error);
+    console.error("[Dashboard API] Error:", error);
     return NextResponse.json(
-      { success: false, error: "Server error", message: error.message },
+      { success: false, error: "Failed to load dashboard data" },
       { status: 500 }
     );
   }
