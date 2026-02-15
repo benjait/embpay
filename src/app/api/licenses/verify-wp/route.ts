@@ -30,14 +30,14 @@ export async function POST(request: NextRequest) {
             id: true,
             email: true,
             name: true,
-            tier: true,
+            plan: true,
             products: {
-              where: { isProduction: true },
+              where: { active: true },
               select: {
                 id: true,
                 name: true,
                 type: true,
-                isProduction: true,
+                active: true,
               },
               take: 50,
             },
@@ -83,10 +83,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Determine tier and limits
-    const userTier = license.user?.tier || "free";
+    const userPlan = license.user?.plan || "free";
     let maxProductionProducts = 10; // Free tier default
 
-    if (userTier === "pro" || userTier === "scale") {
+    if (userPlan === "pro" || userPlan === "scale") {
       maxProductionProducts = 999999; // Unlimited
     }
 
@@ -103,12 +103,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         valid: true,
-        tier: userTier,
+        plan: userPlan,
         max_production_products: maxProductionProducts,
         products: (license.user?.products || []).map((p: any) => ({
           id: p.id,
           name: p.name,
-          is_production: p.isProduction,
+          is_production: p.active, // Active products = production mode
         })),
         license_key: license.key,
         customer_email: license.customerEmail,
