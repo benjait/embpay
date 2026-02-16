@@ -15,7 +15,7 @@ async function createWordPressLicense() {
       process.exit(1);
     }
 
-    console.log('✅ Found user:', user.email, '| Tier:', user.tier);
+    console.log('✅ Found user:', user.email, '| Plan:', user.plan);
 
     // Generate license key
     const key = `EMBP-WP26-TEST-${crypto.randomBytes(4).toString('hex').toUpperCase().substring(0, 4)}`;
@@ -79,7 +79,7 @@ async function createWordPressLicense() {
     console.log('📋 License Key:', license.key);
     console.log('👤 Customer:', license.customerEmail);
     console.log('📦 Product:', product.name);
-    console.log('🎫 User Tier:', user.tier);
+    console.log('🎫 User Plan:', user.plan);
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
     console.log('🔗 Use this key in WordPress:');
     console.log('   https://arena.course.cheap/wp-admin/admin.php?page=embpay-settings\n');
