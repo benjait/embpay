@@ -90,12 +90,11 @@ export async function POST(request: NextRequest) {
       maxProductionProducts = 999999; // Unlimited
     }
 
-    // Update last verified + store domain (machine ID)
+    // Update last verified timestamp
     await prisma.licenseKey.update({
       where: { id: license.id },
       data: {
         lastVerifiedAt: new Date(),
-        machineId: domain || null,
       },
     });
 
