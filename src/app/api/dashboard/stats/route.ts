@@ -128,7 +128,7 @@ export async function GET(req: NextRequest) {
     const recentOrders = (recentOrdersData || []).map(order => ({
       id: order.id,
       customerEmail: order.customer_email || 'Unknown',
-      productName: order.product?.name || 'Unknown Product',
+      productName: (order.product as any)?.name || 'Unknown Product',
       amount: order.total || 0,
       status: order.status,
       createdAt: order.created_at

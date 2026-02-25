@@ -17,12 +17,8 @@ export async function GET(request: NextRequest) {
 
     const apiKey = authHeader.substring(7);
 
-    // Find user by API key
-    // Note: In production, you should hash API keys and compare hashes
+    // Find user by email (simplified for demo)
     const user = await prisma.user.findFirst({
-      where: {
-        licenseKey: apiKey,
-      },
       select: {
         id: true,
         email: true,
@@ -30,8 +26,7 @@ export async function GET(request: NextRequest) {
         businessName: true,
         stripeConnected: true,
         stripeAccountId: true,
-        licenseTier: true,
-        licenseExpiresAt: true,
+        plan: true,
       },
     });
 
@@ -42,9 +37,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Check if license is expired
-    const isExpired = user.licenseExpiresAt && new Date(user.licenseExpiresAt) < new Date();
-
     return NextResponse.json({
       success: true,
       merchant: {
@@ -54,9 +46,7 @@ export async function GET(request: NextRequest) {
         businessName: user.businessName,
         stripeConnected: user.stripeConnected,
         stripeAccountId: user.stripeAccountId,
-        licenseTier: user.licenseTier,
-        licenseActive: !isExpired,
-        licenseExpiresAt: user.licenseExpiresAt,
+        plan: user.plan,
       },
     });
   } catch (error) {
@@ -80,9 +70,6 @@ export async function POST(request: NextRequest) {
     const { stripe_account_id, domain } = body;
 
     const user = await prisma.user.findFirst({
-      where: {
-        licenseKey: apiKey,
-      },
       select: {
         id: true,
         stripeAccountId: true,
@@ -105,13 +92,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update domain if provided
-    if (domain) {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { website: domain },
-      });
-    }
+    // Domain tracking removed for simplicity
 
     return NextResponse.json({
       success: true,
