@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer">
+    <title>EmbPay Secure Checkout</title>
+    <link rel="stylesheet" href="/css/checkout.css">
+</head>
+<body>
+    <div class="checkout-container">
+        <!-- Header -->
+        <div class="checkout-header">
+            <div class="logo">
+                <span class="logo-icon">🔒</span>
+                <span class="logo-text">EmbPay</span>
+            </div>
+            <div class="secure-badge">
+                <span>🔐 Secure Checkout</span>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading-state" class="state-container">
+            <div class="spinner"></div>
+            <p>Loading checkout...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="error-state" class="state-container hidden">
+            <div class="error-icon">⚠️</div>
+            <h2>Checkout Error</h2>
+            <p id="error-message">Something went wrong</p>
+            <button onclick="closeWindow()" class="btn-secondary">Close</button>
+        </div>
+
+        <!-- Success State -->
+        <div id="success-state" class="state-container hidden">
+            <div class="success-icon">✅</div>
+            <h2>Payment Successful!</h2>
+            <p>Your order has been confirmed</p>
+            <p class="order-details" id="order-details"></p>
+            <button onclick="closeWindow()" class="btn-primary">Close</button>
+        </div>
+
+        <!-- Checkout Form (Stripe Redirect Flow) -->
+        <div id="checkout-form" class="hidden">
+            <!-- Product Info -->
+            <div class="product-card">
+                <div class="product-image" id="product-image">
+                    <!-- Image loaded dynamically -->
+                </div>
+                <div class="product-details">
+                    <h2 class="product-name" id="product-name">Loading...</h2>
+                    <p class="product-price" id="product-price">$0.00</p>
+                </div>
+            </div>
+
+            <!-- Email Input -->
+            <div class="form-group">
+                <label for="email">Email (for receipt)</label>
+                <input type="email" id="email" placeholder="your@email.com" required>
+            </div>
+
+            <!-- Pay Button (Redirects to Stripe) -->
+            <button id="pay-button" class="btn-primary btn-full" onclick="redirectToStripe()">
+                <span id="button-text">Pay Now</span>
+                <span id="button-spinner" class="spinner hidden"></span>
+            </button>
+
+            <!-- Security Footer -->
+            <div class="security-footer">
+                <div class="security-item">
+                    <span>🔒</span>
+                    <small>SSL Encrypted</small>
+                </div>
+                <div class="security-item">
+                    <span>💳</span>
+                    <small>PCI Compliant</small>
+                </div>
+                <div class="security-item">
+                    <span>🛡️</span>
+                    <small>Fraud Protected</small>
+                </div>
+            </div>
+
+            <p class="powered-by">
+                Powered by <strong>EmbPay</strong> & <strong>Stripe</strong>
+            </p>
+        </div>
+    </div>
+
+    <script src="/js/checkout.js"></script>
+</body>
+</html>
