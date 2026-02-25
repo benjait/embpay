@@ -1,159 +1,161 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma"; // Use singleton
-import { getAuthUser } from "@/lib/auth";
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+import { subDays, format, startOfDay, endOfDay } from 'date-fns';
 
-// Force dynamic to ensure we check auth, but we can cache manually
-export const dynamic = 'force-dynamic';
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
-export async function GET(request: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
-    const user = await getAuthUser(request);
+    const { searchParams } = new URL(req.url);
+    const range = searchParams.get('range') || '7d';
     
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
-      );
+    // Calculate date range
+    const daysBack = range === '7d' ? 7 : range === '30d' ? 30 : 90;
+    const startDate = startOfDay(subDays(new Date(), daysBack));
+    const endDate = endOfDay(new Date());
+    
+    // Get previous period for comparison
+    const prevStartDate = startOfDay(subDays(startDate, daysBack));
+    const prevEndDate = endOfDay(subDays(endDate, daysBack));
+
+    // Fetch current period data
+    const { data: currentOrders, error: currentError } = await supabase
+      .from('orders')
+      .select('id, total, created_at, status')
+      .gte('created_at', startDate.toISOString())
+      .lte('created_at', endDate.toISOString());
+
+    if (currentError) {
+      console.error('Supabase error (current):', currentError);
+      throw currentError;
     }
 
-    // Dates for filtering
-    const now = new Date();
-    const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    // Fetch previous period data for comparison
+    const { data: prevOrders, error: prevError } = await supabase
+      .from('orders')
+      .select('id, total, created_at, status')
+      .gte('created_at', prevStartDate.toISOString())
+      .lte('created_at', prevEndDate.toISOString());
 
-    // ⚡ Execute all DB queries in parallel for maximum speed
-    const [
-      totalStats,
-      thisMonthStats,
-      lastMonthStats,
-      recentOrders,
-      productsCount,
-      chartDataRaw
-    ] = await Promise.all([
-      // 1. Total Revenue & Orders (Lifetime)
-      prisma.order.aggregate({
-        where: { userId: user.id, status: "completed" },
-        _sum: { amount: true },
-        _count: { id: true },
-      }),
-
-      // 2. This Month Revenue & Orders
-      prisma.order.aggregate({
-        where: { 
-          userId: user.id, 
-          status: "completed",
-          createdAt: { gte: startOfThisMonth }
-        },
-        _sum: { amount: true },
-        _count: { id: true },
-      }),
-
-      // 3. Last Month Revenue & Orders (for comparison)
-      prisma.order.aggregate({
-        where: { 
-          userId: user.id, 
-          status: "completed",
-          createdAt: { gte: startOfLastMonth, lte: endOfLastMonth }
-        },
-        _sum: { amount: true },
-        _count: { id: true },
-      }),
-
-      // 4. Recent 5 Orders (for table)
-      prisma.order.findMany({
-        where: { userId: user.id },
-        orderBy: { createdAt: "desc" },
-        take: 5,
-        include: { product: { select: { name: true } } },
-      }),
-
-      // 5. Total Products
-      prisma.product.count({ where: { userId: user.id } }),
-
-      // 6. Last 7 Days Revenue (for chart) - optimized to minimal fetch
-      prisma.order.findMany({
-        where: { 
-          userId: user.id, 
-          status: "completed", 
-          createdAt: { gte: sevenDaysAgo } 
-        },
-        select: { amount: true, createdAt: true },
-      }),
-    ]);
-
-    // Process Data
-    const totalRevenue = totalStats._sum.amount || 0;
-    const totalOrders = totalStats._count.id || 0;
-    
-    const thisMonthRevenue = thisMonthStats._sum.amount || 0;
-    const lastMonthRevenue = lastMonthStats._sum.amount || 0;
-    
-    // Calculate percentage change
-    const revenueChange = lastMonthRevenue > 0
-      ? ((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100
-      : thisMonthRevenue > 0 ? 100 : 0;
-
-    // Calculate Conversion Rate (Completed / Total Orders) - Approx
-    // Need total attempted orders count for accuracy
-    const totalAttempts = await prisma.order.count({ where: { userId: user.id } });
-    const conversionRate = totalAttempts > 0 
-      ? (totalOrders / totalAttempts) * 100 
-      : 0;
-
-    // Format Chart Data
-    const chartDataMap = new Map<string, number>();
-    // Initialize last 7 days with 0
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
-      chartDataMap.set(d.toISOString().split('T')[0], 0);
+    if (prevError) {
+      console.error('Supabase error (prev):', prevError);
+      throw prevError;
     }
-    // Fill with actual data
-    chartDataRaw.forEach(order => {
-      const dateKey = order.createdAt.toISOString().split('T')[0];
-      if (chartDataMap.has(dateKey)) {
-        chartDataMap.set(dateKey, (chartDataMap.get(dateKey) || 0) + (order.amount || 0));
-      }
-    });
 
-    const chartData = Array.from(chartDataMap.entries()).map(([date, amount]) => ({
-      date,
-      label: new Date(date).toLocaleDateString('en-US', { weekday: 'short' }),
-      revenue: amount / 100 // Convert cents to dollars
+    // Calculate current period stats
+    const completedOrders = (currentOrders || []).filter(o => o.status === 'completed');
+    const totalRevenue = completedOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+    const totalOrders = completedOrders.length;
+
+    // Calculate previous period stats
+    const prevCompletedOrders = (prevOrders || []).filter(o => o.status === 'completed');
+    const prevRevenue = prevCompletedOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+    const prevOrdersCount = prevCompletedOrders.length;
+
+    // Calculate changes
+    const revenueChange = prevRevenue > 0 
+      ? ((totalRevenue - prevRevenue) / prevRevenue) * 100 
+      : totalRevenue > 0 ? 100 : 0;
+    
+    const ordersChange = prevOrdersCount > 0 
+      ? ((totalOrders - prevOrdersCount) / prevOrdersCount) * 100 
+      : totalOrders > 0 ? 100 : 0;
+
+    // Get products count
+    const { count: totalProducts } = await supabase
+      .from('products')
+      .select('*', { count: 'exact', head: true });
+
+    const { count: prevProducts } = await supabase
+      .from('products')
+      .select('*', { count: 'exact', head: true })
+      .lte('created_at', prevEndDate.toISOString());
+
+    const productsChange = (prevProducts || 0) > 0 
+      ? (((totalProducts || 0) - (prevProducts || 0)) / (prevProducts || 0)) * 100 
+      : (totalProducts || 0) > 0 ? 100 : 0;
+
+    // Calculate conversion rate (placeholder - would need session tracking)
+    const conversionRate = totalOrders > 0 ? (totalOrders / Math.max(totalOrders * 2, 100)) * 100 : 0;
+    const prevConversionRate = prevOrdersCount > 0 ? (prevOrdersCount / Math.max(prevOrdersCount * 2, 100)) * 100 : 0;
+    const conversionChange = prevConversionRate > 0 
+      ? ((conversionRate - prevConversionRate) / prevConversionRate) * 100 
+      : conversionRate > 0 ? 100 : 0;
+
+    // Generate revenue chart data
+    const revenueData = [];
+    for (let i = daysBack - 1; i >= 0; i--) {
+      const date = subDays(new Date(), i);
+      const dayStart = startOfDay(date);
+      const dayEnd = endOfDay(date);
+      
+      const dayOrders = completedOrders.filter(o => {
+        const orderDate = new Date(o.created_at);
+        return orderDate >= dayStart && orderDate <= dayEnd;
+      });
+      
+      const dayRevenue = dayOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+      
+      revenueData.push({
+        date: format(date, daysBack <= 7 ? 'EEE' : daysBack <= 30 ? 'MMM d' : 'MMM d'),
+        revenue: dayRevenue,
+        orders: dayOrders.length
+      });
+    }
+
+    // Get recent orders with product details
+    const { data: recentOrdersData, error: recentError } = await supabase
+      .from('orders')
+      .select(`
+        id,
+        total,
+        status,
+        created_at,
+        customer_email,
+        product:products(name)
+      `)
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (recentError) {
+      console.error('Supabase error (recent):', recentError);
+      throw recentError;
+    }
+
+    const recentOrders = (recentOrdersData || []).map(order => ({
+      id: order.id,
+      customerEmail: order.customer_email || 'Unknown',
+      productName: order.product?.name || 'Unknown Product',
+      amount: order.total || 0,
+      status: order.status,
+      createdAt: order.created_at
     }));
 
     return NextResponse.json({
       success: true,
       data: {
-        totalRevenue: totalRevenue / 100,
-        totalOrders: totalOrders, // Total completed
-        totalProducts: productsCount,
-        conversionRate: Math.round(conversionRate * 10) / 10,
-        revenueChange: Math.round(revenueChange * 10) / 10,
-        recentOrders: recentOrders.map(o => ({
-          id: o.id,
-          customerEmail: o.customerEmail,
-          productName: o.product?.name || "Unknown",
-          amount: o.amount / 100,
-          status: o.status,
-          createdAt: o.createdAt.toISOString(),
-        })),
-        chartData,
-        // Helper for plans
-        orders: thisMonthStats._count.id,
-      }
-    }, {
-      headers: {
-        // Cache for 60 seconds to make navigation instant
-        'Cache-Control': 'private, s-maxage=60, stale-while-revalidate=300'
+        stats: {
+          totalRevenue,
+          revenueChange: Math.round(revenueChange * 10) / 10,
+          totalOrders,
+          ordersChange: Math.round(ordersChange * 10) / 10,
+          totalProducts: totalProducts || 0,
+          productsChange: Math.round(productsChange * 10) / 10,
+          conversionRate,
+          conversionChange: Math.round(conversionChange * 10) / 10
+        },
+        revenueData,
+        recentOrders
       }
     });
 
   } catch (error: any) {
-    console.error("[Dashboard API] Error:", error);
+    console.error('Dashboard stats error:', error);
     return NextResponse.json(
-      { success: false, error: "Failed to load dashboard data" },
+      { success: false, error: error.message || 'Failed to fetch dashboard stats' },
       { status: 500 }
     );
   }

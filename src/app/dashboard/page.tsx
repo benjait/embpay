@@ -2,36 +2,53 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, DollarSign, ShoppingCart, Package, TrendingUp, AlertCircle } from "lucide-react";
+import { 
+  Plus, DollarSign, ShoppingCart, Package, TrendingUp, 
+  AlertCircle, Users, CreditCard, BarChart3 
+} from "lucide-react";
+import StatsCard from "@/components/dashboard/StatsCard";
+import RevenueChart from "@/components/dashboard/RevenueChart";
+import RecentOrders from "@/components/dashboard/RecentOrders";
 
 interface DashboardData {
-  totalRevenue: number;
-  totalOrders: number;
-  totalProducts: number;
-  conversionRate: number;
+  stats: {
+    totalRevenue: number;
+    revenueChange: number;
+    totalOrders: number;
+    ordersChange: number;
+    totalProducts: number;
+    productsChange: number;
+    conversionRate: number;
+    conversionChange: number;
+  };
+  revenueData: Array<{ date: string; revenue: number; orders: number }>;
+  recentOrders: Array<{
+    id: string;
+    customerEmail: string;
+    productName: string;
+    amount: number;
+    status: 'completed' | 'pending' | 'failed';
+    createdAt: Date;
+  }>;
 }
 
 export default function DashboardPage() {
-  const [data, setData] = useState<DashboardData>({
-    totalRevenue: 0,
-    totalOrders: 0,
-    totalProducts: 0,
-    conversionRate: 0,
-  });
+  const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('7d');
 
   useEffect(() => {
     let mounted = true;
 
     async function loadData() {
       try {
-        // Ensure minimum loading time for smooth transition (optional, but feels better)
+        setLoading(true);
         const start = Date.now();
-        const res = await fetch("/api/dashboard/stats");
+        
+        const res = await fetch(`/api/dashboard/stats?range=${timeRange}`);
         
         if (!mounted) return;
 
@@ -41,17 +58,12 @@ export default function DashboardPage() {
 
         const json = await res.json();
         
-        // Calculate remaining time to ensure at least 500ms skeleton (prevents flicker)
+        // Ensure minimum loading time for smooth UX
         const elapsed = Date.now() - start;
         if (elapsed < 500) await new Promise(r => setTimeout(r, 500 - elapsed));
 
         if (json.success && json.data) {
-          setData({
-            totalRevenue: json.data.totalRevenue || 0,
-            totalOrders: json.data.totalOrders || 0,
-            totalProducts: json.data.totalProducts || 0,
-            conversionRate: json.data.conversionRate || 0,
-          });
+          setData(json.data);
           setError(null);
         } else {
           throw new Error(json.error || "Failed to load data");
@@ -73,7 +85,7 @@ export default function DashboardPage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [timeRange]);
 
   if (loading) {
     return (
@@ -86,44 +98,15 @@ export default function DashboardPage() {
           <Skeleton className="h-10 w-32" />
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
-            <Card key={i}>
-              <CardContent className="py-5">
-                <div className="flex justify-between items-start">
-                  <div className="space-y-2">
-                    <Skeleton className="h-4 w-16" />
-                    <Skeleton className="h-8 w-24" />
-                  </div>
-                  <Skeleton className="h-10 w-10 rounded-xl" />
-                </div>
-              </CardContent>
-            </Card>
+            <Skeleton key={i} className="h-32 rounded-xl" />
           ))}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card>
-            <CardContent className="py-6 space-y-4">
-              <Skeleton className="h-6 w-32" />
-              <div className="space-y-2">
-                <Skeleton className="h-16 w-full rounded-lg" />
-                <Skeleton className="h-16 w-full rounded-lg" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-             <CardContent className="py-6 space-y-4">
-              <Skeleton className="h-6 w-32" />
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-4 w-5/6" />
-                <Skeleton className="h-4 w-2/3" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <Skeleton className="h-[400px] rounded-xl" />
+        
+        <Skeleton className="h-[400px] rounded-xl" />
       </div>
     );
   }
@@ -141,120 +124,92 @@ export default function DashboardPage() {
     );
   }
 
+  if (!data) {
+    return null;
+  }
+
   const stats = [
     { 
-      label: "Revenue", 
-      value: `$${data.totalRevenue.toFixed(2)}`, 
+      title: "Total Revenue", 
+      value: `$${data.stats.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      change: data.stats.revenueChange,
+      trend: data.stats.revenueChange > 0 ? 'up' : data.stats.revenueChange < 0 ? 'down' : 'neutral',
       icon: DollarSign, 
-      color: "from-emerald-500 to-teal-600" 
+      gradient: "from-emerald-500 to-teal-600" 
     },
     { 
-      label: "Orders", 
-      value: data.totalOrders, 
+      title: "Total Orders", 
+      value: data.stats.totalOrders.toLocaleString(),
+      change: data.stats.ordersChange,
+      trend: data.stats.ordersChange > 0 ? 'up' : data.stats.ordersChange < 0 ? 'down' : 'neutral',
       icon: ShoppingCart, 
-      color: "from-indigo-500 to-blue-600" 
+      gradient: "from-indigo-500 to-blue-600" 
     },
     { 
-      label: "Products", 
-      value: data.totalProducts, 
+      title: "Products", 
+      value: data.stats.totalProducts,
+      change: data.stats.productsChange,
+      trend: data.stats.productsChange > 0 ? 'up' : data.stats.productsChange < 0 ? 'down' : 'neutral',
       icon: Package, 
-      color: "from-purple-500 to-violet-600" 
+      gradient: "from-purple-500 to-violet-600" 
     },
     { 
-      label: "Conversion", 
-      value: `${data.conversionRate.toFixed(1)}%`, 
+      title: "Conversion Rate", 
+      value: `${data.stats.conversionRate.toFixed(1)}%`,
+      change: data.stats.conversionChange,
+      trend: data.stats.conversionChange > 0 ? 'up' : data.stats.conversionChange < 0 ? 'down' : 'neutral',
       icon: TrendingUp, 
-      color: "from-amber-500 to-orange-600" 
+      gradient: "from-amber-500 to-orange-600" 
     },
   ];
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-          <p className="text-sm text-slate-400 mt-1">Welcome back! Here&apos;s your overview.</p>
+          <h1 className="text-3xl font-bold text-white tracking-tight">Dashboard</h1>
+          <p className="text-sm text-slate-400 mt-1">
+            Welcome back! Here&apos;s your performance overview.
+          </p>
         </div>
-        <Link href="/dashboard/products/new">
-          <Button className="bg-indigo-600 hover:bg-indigo-500 text-white">
-            <Plus className="h-4 w-4 mr-2" />
-            New Product
-          </Button>
-        </Link>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 bg-slate-900/50 border border-white/10 rounded-lg p-1">
+            {(['7d', '30d', '90d'] as const).map((range) => (
+              <button
+                key={range}
+                onClick={() => setTimeRange(range)}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                  timeRange === range 
+                    ? 'bg-indigo-600 text-white shadow-sm' 
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                {range === '7d' ? '7 Days' : range === '30d' ? '30 Days' : '90 Days'}
+              </button>
+            ))}
+          </div>
+          <Link href="/dashboard/products/new">
+            <Button className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20">
+              <Plus className="h-4 w-4 mr-2" />
+              New Product
+            </Button>
+          </Link>
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((item) => (
-          <Card key={item.label} className="border-white/10 bg-slate-900/50 backdrop-blur-sm hover:bg-slate-900/80 transition-colors">
-            <CardContent className="py-5">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-sm text-slate-400">{item.label}</p>
-                  <p className="text-2xl font-bold text-white mt-1">{item.value}</p>
-                </div>
-                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center shadow-lg`}>
-                  <item.icon className="h-5 w-5 text-white" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((stat) => (
+          <StatsCard key={stat.title} {...stat} />
         ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="border-white/10 bg-slate-900/50">
-          <CardContent className="py-6">
-            <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
-            <div className="space-y-3">
-              <Link href="/dashboard/products" className="block group">
-                <div className="p-3 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-all group-hover:border-indigo-500/30">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-white">View All Products</p>
-                      <p className="text-xs text-slate-400">Manage your product catalog</p>
-                    </div>
-                    <Package className="h-4 w-4 text-slate-500 group-hover:text-indigo-400 transition-colors" />
-                  </div>
-                </div>
-              </Link>
-              <Link href="/dashboard/orders" className="block group">
-                <div className="p-3 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-all group-hover:border-indigo-500/30">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-white">View Orders</p>
-                      <p className="text-xs text-slate-400">Track customer orders</p>
-                    </div>
-                    <ShoppingCart className="h-4 w-4 text-slate-500 group-hover:text-indigo-400 transition-colors" />
-                  </div>
-                </div>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Revenue Chart */}
+      <RevenueChart data={data.revenueData} timeRange={timeRange} />
 
-        <Card className="border-white/10 bg-slate-900/50">
-          <CardContent className="py-6">
-            <h3 className="text-lg font-semibold text-white mb-4">Get Started</h3>
-            <div className="space-y-3">
-              {[
-                { label: "Create your first product", done: data.totalProducts > 0 },
-                { label: "Set up payment methods", done: true }, // Assuming done for now
-                { label: "Customize your checkout", done: true },
-                { label: "Share your product links", done: data.totalOrders > 0 }
-              ].map((step, i) => (
-                <div key={i} className="flex items-center gap-3 text-sm">
-                  <div className={`flex h-5 w-5 items-center justify-center rounded-full border ${step.done ? 'border-emerald-500 bg-emerald-500/20 text-emerald-500' : 'border-slate-600 bg-slate-800 text-slate-400'}`}>
-                    {step.done && <TrendingUp className="h-3 w-3" />}
-                  </div>
-                  <span className={step.done ? "text-slate-300 line-through decoration-slate-600" : "text-slate-300"}>
-                    {step.label}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Recent Orders */}
+      <RecentOrders orders={data.recentOrders} />
     </div>
   );
 }
