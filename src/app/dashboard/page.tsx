@@ -133,7 +133,7 @@ export default function DashboardPage() {
       title: "Total Revenue", 
       value: `$${data.stats.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       change: data.stats.revenueChange,
-      trend: data.stats.revenueChange > 0 ? 'up' : data.stats.revenueChange < 0 ? 'down' : 'neutral',
+      trend: (data.stats.revenueChange > 0 ? 'up' : data.stats.revenueChange < 0 ? 'down' : 'neutral') as 'up' | 'down' | 'neutral',
       icon: DollarSign, 
       gradient: "from-emerald-500 to-teal-600" 
     },
@@ -141,7 +141,7 @@ export default function DashboardPage() {
       title: "Total Orders", 
       value: data.stats.totalOrders.toLocaleString(),
       change: data.stats.ordersChange,
-      trend: data.stats.ordersChange > 0 ? 'up' : data.stats.ordersChange < 0 ? 'down' : 'neutral',
+      trend: (data.stats.ordersChange > 0 ? 'up' : data.stats.ordersChange < 0 ? 'down' : 'neutral') as 'up' | 'down' | 'neutral',
       icon: ShoppingCart, 
       gradient: "from-indigo-500 to-blue-600" 
     },
@@ -149,7 +149,7 @@ export default function DashboardPage() {
       title: "Products", 
       value: data.stats.totalProducts,
       change: data.stats.productsChange,
-      trend: data.stats.productsChange > 0 ? 'up' : data.stats.productsChange < 0 ? 'down' : 'neutral',
+      trend: (data.stats.productsChange > 0 ? 'up' : data.stats.productsChange < 0 ? 'down' : 'neutral') as 'up' | 'down' | 'neutral',
       icon: Package, 
       gradient: "from-purple-500 to-violet-600" 
     },
@@ -157,7 +157,7 @@ export default function DashboardPage() {
       title: "Conversion Rate", 
       value: `${data.stats.conversionRate.toFixed(1)}%`,
       change: data.stats.conversionChange,
-      trend: data.stats.conversionChange > 0 ? 'up' : data.stats.conversionChange < 0 ? 'down' : 'neutral',
+      trend: (data.stats.conversionChange > 0 ? 'up' : data.stats.conversionChange < 0 ? 'down' : 'neutral') as 'up' | 'down' | 'neutral',
       icon: TrendingUp, 
       gradient: "from-amber-500 to-orange-600" 
     },
