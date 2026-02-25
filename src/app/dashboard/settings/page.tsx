@@ -55,6 +55,60 @@ export default function SettingsPage() {
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("general");
 
+  // API Keys state
+  const [apiKeys, setApiKeys] = useState<any[]>([]);
+  const [apiKeyLoading, setApiKeyLoading] = useState(false);
+  const [newKeyName, setNewKeyName] = useState("WordPress Plugin");
+  const [showNewKey, setShowNewKey] = useState<string | null>(null);
+
+  // Load API keys when tab changes
+  useEffect(() => {
+    if (activeTab === "apikeys") loadApiKeys();
+  }, [activeTab]);
+
+  const loadApiKeys = async () => {
+    setApiKeyLoading(true);
+    try {
+      const res = await fetch("/api/keys");
+      const data = await res.json();
+      if (data.success) setApiKeys(data.keys || []);
+    } catch (e) {
+      console.error("Failed to load API keys", e);
+    } finally {
+      setApiKeyLoading(false);
+    }
+  };
+
+  const generateKey = async () => {
+    setApiKeyLoading(true);
+    try {
+      const res = await fetch("/api/keys", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newKeyName }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setShowNewKey(data.apiKey.key);
+        loadApiKeys();
+      }
+    } catch (e) {
+      console.error("Failed to generate key", e);
+    } finally {
+      setApiKeyLoading(false);
+    }
+  };
+
+  const revokeKey = async (id: string) => {
+    if (!confirm("Revoke this API key?")) return;
+    try {
+      await fetch(`/api/keys?id=${id}`, { method: "DELETE" });
+      loadApiKeys();
+    } catch (e) {
+      console.error("Failed to revoke key", e);
+    }
+  };
+
   // Fetch user settings on mount
   useEffect(() => {
     fetch("/api/settings")
@@ -208,10 +262,11 @@ export default function SettingsPage() {
 
       {/* Main Content */}
       <Tabs defaultValue="general" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
+        <TabsList className="grid w-full grid-cols-4 lg:w-[500px]">
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="payments">Payments</TabsTrigger>
           <TabsTrigger value="branding">Branding</TabsTrigger>
+          <TabsTrigger value="apikeys">API Keys</TabsTrigger>
         </TabsList>
 
         {/* ── General Tab ──────────────────────────────────────────────── */}
@@ -495,6 +550,97 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── API Keys Tab ─────────────────────────────────────────────── */}
+        <TabsContent value="apikeys" className="space-y-6">
+          <Card className="border-white/10 bg-slate-900/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-white">
+                <Key className="h-5 w-5" /> API Keys
+              </CardTitle>
+              <CardDescription className="text-slate-400">
+                Use these keys to connect your WordPress site or other integrations.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {showNewKey && (
+                <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+                  <p className="text-green-400 font-medium mb-2">✅ API Key Created — Copy it now!</p>
+                  <code className="block p-3 bg-slate-950 rounded text-green-300 text-sm break-all">{showNewKey}</code>
+                  <p className="text-slate-400 text-xs mt-2">This key will not be shown again. Store it securely.</p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-2"
+                    onClick={() => { navigator.clipboard.writeText(showNewKey); }}
+                  >Copy to Clipboard</Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="mt-2 ml-2"
+                    onClick={() => setShowNewKey(null)}
+                  >Dismiss</Button>
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <Input
+                  value={newKeyName}
+                  onChange={(e) => setNewKeyName(e.target.value)}
+                  placeholder="Key name (e.g., WordPress Plugin)"
+                  className="flex-1 bg-slate-950 border-white/10"
+                />
+                <Button
+                  onClick={generateKey}
+                  disabled={apiKeyLoading || !newKeyName}
+                  className="bg-indigo-500 hover:bg-indigo-600"
+                >
+                  {apiKeyLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Generate Key"}
+                </Button>
+              </div>
+
+              <div className="space-y-2">
+                {apiKeys.length === 0 && !apiKeyLoading && (
+                  <p className="text-slate-500 text-center py-8">No API keys yet. Generate your first key above.</p>
+                )}
+                {apiKeys.map((key) => (
+                  <div key={key.id} className="flex items-center justify-between p-3 bg-slate-950 rounded-lg border border-white/5">
+                    <div>
+                      <p className="text-white font-medium">{key.name}</p>
+                      <p className="text-slate-500 text-sm font-mono">{key.keyPreview}</p>
+                      <p className="text-slate-600 text-xs">
+                        {key.active ? <span className="text-green-500">Active</span> : <span className="text-red-500">Revoked</span>}
+                        {key.lastUsed && ` • Last used ${new Date(key.lastUsed).toLocaleDateString()}`}
+                        {!key.lastUsed && " • Never used"}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => revokeKey(key.id)}
+                      disabled={!key.active}
+                      className="text-red-400 hover:text-red-300"
+                    >Revoke</Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-white/10 bg-slate-900/50">
+            <CardHeader>
+              <CardTitle className="text-white">WordPress Setup</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <ol className="list-decimal list-inside space-y-2 text-slate-300">
+                <li>Copy your API key above</li>
+                <li>Go to WordPress Admin → Settings → EmbPay</li>
+                <li>Paste the API key and save</li>
+                <li>In WooCommerce products, add <code className="bg-slate-800 px-1 rounded">embpay_product_id</code> custom field</li>
+              </ol>
             </CardContent>
           </Card>
         </TabsContent>
