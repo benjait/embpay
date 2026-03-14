@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
 import { sendOrderConfirmation, sendRefundNotification } from "@/lib/email";
+import { logger } from "@/lib/logger";
+import * as Sentry from "@sentry/nextjs";
 import Stripe from "stripe";
+
+const log = logger.child({ route: "stripe-webhook" });
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -29,7 +33,7 @@ async function logWebhookEvent(
       },
     });
   } catch (e) {
-    console.error("Failed to log webhook event:", e);
+    log.error({ err: e }, "Failed to log webhook event");
   }
 }
 
@@ -43,7 +47,7 @@ export async function POST(request: NextRequest) {
 
     // Verify webhook signature — ALWAYS required
     if (!webhookSecret || webhookSecret === "whsec_placeholder") {
-      console.error("Webhook rejected: STRIPE_WEBHOOK_SECRET not configured");
+      log.error("Webhook rejected: STRIPE_WEBHOOK_SECRET not configured");
       return NextResponse.json(
         { success: false, error: "Webhook not configured" },
         { status: 500 }
@@ -51,7 +55,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!signature) {
-      console.error("Webhook rejected: missing stripe-signature header");
+      log.warn("Webhook rejected: missing stripe-signature header");
       return NextResponse.json(
         { success: false, error: "Missing signature" },
         { status: 400 }
@@ -65,7 +69,7 @@ export async function POST(request: NextRequest) {
         webhookSecret
       );
     } catch (err) {
-      console.error("Webhook signature verification failed:", err);
+      log.warn({ err }, "Webhook signature verification failed");
       return NextResponse.json(
         { success: false, error: "Invalid signature" },
         { status: 400 }
@@ -74,7 +78,7 @@ export async function POST(request: NextRequest) {
 
     // Signature verified successfully — event is set above
   } catch (error) {
-    console.error("Webhook body parse error:", error);
+    log.error({ err: error }, "Webhook body parse error");
     return NextResponse.json(
       { success: false, error: "Invalid request body" },
       { status: 400 }
@@ -276,7 +280,11 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
-    console.error(`Webhook processing error for ${event.type}:`, error);
+    log.error({ err: error, eventType: event.type, eventId: event.id }, "Webhook processing error");
+    Sentry.captureException(error, {
+      tags: { eventType: event.type },
+      extra: { eventId: event.id },
+    });
 
     // Log failed processing
     await logWebhookEvent(event.id, event.type, rawBody, false, errorMessage);

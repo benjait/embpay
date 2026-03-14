@@ -1,11 +1,25 @@
 import { NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
+import { logger } from "@/lib/logger";
 
 /**
  * Handle Prisma and general errors consistently across API routes.
  * Returns a properly formatted error response.
+ * Logs to structured logger and reports to Sentry.
  */
 export function handleApiError(error: unknown, context: string = "API") {
-  console.error(`${context} error:`, error);
+  logger.error({ err: error, context }, `${context} error`);
+
+  // Report unexpected errors to Sentry (skip expected 4xx errors)
+  const isExpectedError =
+    error instanceof Error &&
+    (error.name === "PrismaClientKnownRequestError" ||
+      error.name === "PrismaClientValidationError" ||
+      (error.name === "SyntaxError" && error.message.includes("JSON")));
+
+  if (!isExpectedError) {
+    Sentry.captureException(error, { tags: { context } });
+  }
 
   // Handle Prisma-specific errors
   if (error instanceof Error) {
